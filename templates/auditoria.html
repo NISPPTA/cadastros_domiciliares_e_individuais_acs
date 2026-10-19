@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoria de Cadastros - e-SUS PEC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Cabeçalho -->
+        <header class="mb-8 border-b border-slate-200 pb-5 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Painel de Integridade e Auditoria Cadastral</h1>
+                <p class="text-slate-500 mt-1">Conferência e detecção automática de anomalias no e-SUS PEC</p>
+            </div>
+            
+            {% if relatorio %}
+            <!-- Botão de Emissão de Laudo PDF -->
+            <a href="/auditoria/pdf/{{ relatorio.profissional_id }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Baixar Laudo PDF
+            </a>
+            {% endif %}
+        </header>
+
+        <!-- Dropdown Seletor de ACS -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+            <form method="GET" action="/auditoria/">
+                <label for="agente_id" class="block text-sm font-semibold text-slate-700 mb-2">Selecione o Agente Comunitário de Saúde (ACS):</label>
+                <div class="flex gap-4">
+                    <select name="agente_id" id="agente_id" onchange="this.form.submit()" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-base rounded-lg p-3 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                        <option value="">-- Escolha um Agente para Inspecionar --</option>
+                        {% for agente in agentes %}
+                            <option value="{{ agente.id }}" {% if agente_selecionado == agente.id %}selected{% endif %}>
+                                {{ agente.nome }} (CNS: {{ agente.cns }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        {% if relatorio %}
+        <!-- Placar Geral de Eficiência -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- ... (Mantenha as 4 divs do placar inalteradas) ... -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-sm font-medium text-slate-500">Agente Auditado</span>
+                <p class="text-xl font-bold text-slate-800 mt-1 truncate">{{ relatorio.nome_acs }}</p>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-sm font-medium text-slate-500">Volume Total Auditado</span>
+                <p class="text-xl font-bold text-slate-800 mt-1">{{ relatorio.total_domicilios }} Dom. / {{ relatorio.total_cadastros_individuais }} Indiv.</p>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-sm font-medium text-slate-500">Índice de Qualidade Cadastral (IQC)</span>
+                <p class="text-3xl font-extrabold mt-1 {% if relatorio.taxa_eficiencia >= 80 %}text-emerald-600{% elif relatorio.taxa_eficiencia >= 50 %}text-amber-600{% else %}text-rose-600{% endif %}">
+                    {{ relatorio.taxa_eficiencia }}%
+                </p>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-sm font-medium text-slate-500">Enquadramento Regulatório</span>
+                <p class="text-sm font-bold mt-2 uppercase tracking-wide {% if relatorio.taxa_eficiencia >= 80 %}text-emerald-700{% elif relatorio.taxa_eficiencia >= 50 %}text-amber-700{% else %}text-rose-700{% endif %}">
+                    {{ relatorio.classificacao }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Alertas e Inconsistências Críticas -->
+        {% if relatorio.pontos_atencao %}
+        <div class="bg-rose-50 border-l-4 border-rose-500 p-5 rounded-r-xl mb-8">
+            <h3 class="text-base font-bold text-rose-800">Inconsistências Cadastrais Detectadas:</h3>
+            <ul class="list-disc pl-5 mt-2 space-y-1 text-sm text-rose-700 font-medium">
+                {% for ponto in relatorio.pontos_atencao %}
+                    <li>{{ ponto }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Grade de Análise dos 4 Pilares -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Pilar 1: Cômodos -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b">1. Distribuição de Cômodos por Domicílio</h2>
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs uppercase bg-slate-100 text-slate-600">
+                        <tr>
+                            <th class="p-2">Qtd Cômodos</th>
+                            <th class="p-2 text-center">Total Casas</th>
+                            <th class="p-2 text-right">Percentual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in relatorio.detalhes_comodos %}
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-2 font-medium">{{ c.comodos }} cômodos</td>
+                            <td class="p-2 text-center">{{ c.total }}</td>
+                            <td class="p-2 text-right font-bold {% if c.percentual > 70 %}text-rose-600{% endif %}">{{ c.percentual }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pilar 2: Telefones Clonados -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b">2. Telefones Replicados em Múltiplos Munícipes</h2>
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs uppercase bg-slate-100 text-slate-600">
+                        <tr>
+                            <th class="p-2">Número Registrado</th>
+                            <th class="p-2 text-right">Usuários com este Contato</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in relatorio.telefones_duplicados %}
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-2 font-mono font-medium">{{ t.telefone }}</td>
+                            <td class="p-2 text-right font-bold {% if t.qtd > 20 %}text-rose-600{% else %}text-amber-600{% endif %}">{{ t.qtd }} munícipes</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2" class="p-4 text-center text-slate-400">Nenhuma replicação indevida localizada.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pilar 3: Composição Familiar -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b">3. Quantidade de Moradores Registrada</h2>
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs uppercase bg-slate-100 text-slate-600">
+                        <tr>
+                            <th class="p-2">Moradores / Domicílio</th>
+                            <th class="p-2 text-center">Total Casas</th>
+                            <th class="p-2 text-right">Percentual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in relatorio.dados_moradores %}
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-2 font-medium">{{ m.qtd_morador if m.qtd_morador is not none else 'Não Informado (Nulo)' }}</td>
+                            <td class="p-2 text-center">{{ m.total }}</td>
+                            <td class="p-2 text-right">{{ m.percentual }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pilar 4: Diagnóstico Clínico / Doenças Crônicas -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b">4. Aferição de Doenças Crônicas (APS)</h2>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="p-3 bg-slate-50 rounded-lg">
+                        <span class="text-xs text-slate-500 block uppercase">Hipertensão</span>
+                        <span class="text-lg font-bold text-slate-800">{{ relatorio.dados_saude.hipertensos }}</span>
+                        <!-- CORRIGIDO: Adicionado o asterisco de multiplicação e formatação -->
+                        <span class="text-xs text-slate-400 block">({{ "%.1f"|format(relatorio.dados_saude.hipertensos * 100 / (relatorio.total_cadastros_individuais or 1)) }}% da base)</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-lg">
+                        <span class="text-xs text-slate-500 block uppercase">Diabetes</span>
+                        <span class="text-lg font-bold text-slate-800">{{ relatorio.dados_saude.diabeticos }}</span>
+                        <!-- CORRIGIDO: Adicionado o asterisco de multiplicação e formatação -->
+                        <span class="text-xs text-slate-400 block">({{ "%.1f"|format(relatorio.dados_saude.diabeticos * 100 / (relatorio.total_cadastros_individuais or 1)) }}% da base)</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-lg">
+                        <span class="text-xs text-slate-500 block uppercase">Doenças Respiratórias</span>
+                        <span class="text-lg font-bold {% if relatorio.dados_saude.respiratoria == 0 %}text-rose-600{% else %}text-slate-800{% endif %}">
+                            {{ relatorio.dados_saude.respiratoria }}
+                        </span>
+                        <span class="text-xs text-slate-400 block">Asma / DPOC</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-lg">
+                        <span class="text-xs text-slate-500 block uppercase">Fumantes Registrados</span>
+                        <span class="text-lg font-bold text-slate-800">{{ relatorio.dados_saude.fumantes }}</span>
+                        <span class="text-xs text-slate-400 block">Tabagismo ativo</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-16 bg-white border border-dashed border-slate-300 rounded-2xl">
+            <p class="text-slate-400 text-lg">Selecione um Agente Comunitário no menu acima para carregar o laudo de conformidade.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>

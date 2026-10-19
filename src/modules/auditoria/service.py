@@ -21,7 +21,7 @@ class RelatorioAuditoriaACS:
 
 
 class AuditoriaCadastralService:
-    # --- Parâmetros e Limites de Auditoria (Magic Numbers extraídos) ---
+    # --- Parâmetros e Limites de Auditoria ---
     LIMITE_COMODOS_PERCENTUAL = 70.0
     PENALIDADE_COMODOS = 25.0
 
@@ -37,19 +37,23 @@ class AuditoriaCadastralService:
     PENALIDADE_HIPERTENSAO = 15.0
     PENALIDADE_RESPIRATORIA = 10.0
 
+    # ==========================================
+    # MÉTODOS PÚBLICOS DE CONSULTA GERAL
+    # ==========================================
+
     async def listar_acs_ativos(
         self, esus_session: AsyncSession
     ) -> list[dict[str, Any]]:
-        """Recupera todos os profissionais cadastrados como ACS no e-SUS PEC."""
+        """Recupera todos os profissionais que atuam ativamente como ACS no e-SUS PEC."""
         query = text("""
             SELECT DISTINCT 
                 dp.co_seq_dim_profissional AS id,
                 dp.no_profissional AS nome,
                 dp.nu_cns AS cns
             FROM tb_dim_profissional dp
-            JOIN tb_dim_cbo cbo ON cbo.co_seq_dim_cbo = dp.co_dim_cbo
-            WHERE cbo.nu_cbo ILIKE '515105%'
-               OR cbo.ds_cbo ILIKE '%AGENTE COMUNITARIO%'
+            JOIN tb_fat_cad_domiciliar fd ON fd.co_dim_profissional = dp.co_seq_dim_profissional
+            WHERE dp.no_profissional NOT ILIKE '%ADMINISTRADOR%'
+              AND dp.no_profissional NOT ILIKE '%GESTOR%'
             ORDER BY dp.no_profissional ASC;
         """)
         result = await esus_session.execute(query)
@@ -57,13 +61,35 @@ class AuditoriaCadastralService:
             {"id": row.id, "nome": row.nome, "cns": row.cns} for row in result.all()
         ]
 
+    async def buscar_acs_por_termo(
+        self, esus_session: AsyncSession, termo: str, limit: int = 15
+    ) -> list[dict[str, Any]]:
+        """Pesquisa agentes em tempo real com base em parte do nome ou CNS."""
+        query = text("""
+            SELECT DISTINCT 
+                dp.co_seq_dim_profissional AS id,
+                dp.no_profissional AS nome,
+                dp.nu_cns AS cns
+            FROM tb_dim_profissional dp
+            JOIN tb_fat_cad_domiciliar fd ON fd.co_dim_profissional = dp.co_seq_dim_profissional
+            WHERE (dp.no_profissional ILIKE :termo OR dp.nu_cns ILIKE :termo)
+              AND dp.no_profissional NOT ILIKE '%ADMINISTRADOR%'
+              AND dp.no_profissional NOT ILIKE '%GESTOR%'
+            ORDER BY dp.no_profissional ASC
+            LIMIT :limit;
+        """)
+        termo_param = f"%{termo.strip()}%"
+        result = await esus_session.execute(
+            query, {"termo": termo_param, "limit": limit}
+        )
+        return [{"id": r.id, "nome": r.nome, "cns": r.cns} for r in result.all()]
+
     async def auditar_acs(
         self, esus_session: AsyncSession, profissional_id: int
     ) -> RelatorioAuditoriaACS:
-        """Executa a auditoria completa de um agente delegando responsabilidades a métodos especialistas."""
+        """Executa a auditoria completa de um agente."""
         params = {"id": profissional_id}
 
-        # Extração de dados (Executados sequencialmente para respeitar o event loop do AsyncSession)
         nome_acs = await self._buscar_nome_acs(esus_session, params)
         comodos_list = await self._buscar_comodos(esus_session, params)
         telefones_list = await self._buscar_telefones_duplicados(esus_session, params)
@@ -73,7 +99,6 @@ class AuditoriaCadastralService:
         total_domicilios = sum(item["total"] for item in comodos_list)
         total_ind = saude_dict["total_cadastros"]
 
-        # Processamento das regras de negócio e cálculo de pontuação
         taxa_eficiencia, pontos_atencao = self._calcular_eficiencia_e_alertas(
             comodos_list, telefones_list, moradores_list, saude_dict, total_ind
         )
@@ -92,6 +117,178 @@ class AuditoriaCadastralService:
             dados_saude=saude_dict,
             pontos_atencao=pontos_atencao,
         )
+
+    # ==========================================
+    # MÉTODOS DA BANCADA PERICIAL (TELAS DETALHADAS)
+    # ==========================================
+
+    async def listar_domicilios_detalhado(
+        self,
+        esus_session: AsyncSession,
+        profissional_id: int,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Lista paginada de domicílios priorizando o endereço decodificado da tabela CDS."""
+
+        query_count = text(
+            "SELECT COUNT(co_seq_fat_cad_domiciliar) FROM tb_fat_cad_domiciliar WHERE co_dim_profissional = :id"
+        )
+        total_records = (
+            await esus_session.execute(query_count, {"id": profissional_id})
+        ).scalar() or 0
+
+        query = text("""
+            SELECT 
+                fd.co_seq_fat_cad_domiciliar AS id_ficha,
+                CASE 
+                    WHEN ccd.no_logradouro IS NOT NULL THEN ccd.no_logradouro
+                    WHEN LENGTH(fd.no_logradouro) >= 32 THEN 'Rua Codificada (Verificar no Prontuário)'
+                    ELSE COALESCE(fd.no_logradouro, 'Endereço Não Informado')
+                END AS logradouro,
+                CASE 
+                    WHEN ccd.nu_domicilio IS NOT NULL THEN ccd.nu_domicilio
+                    WHEN LENGTH(fd.nu_num_logradouro) >= 32 THEN 'S/N'
+                    ELSE COALESCE(fd.nu_num_logradouro, 'S/N')
+                END AS numero,
+                CASE 
+                    WHEN ccd.no_bairro IS NOT NULL THEN ccd.no_bairro
+                    WHEN LENGTH(fd.no_bairro) >= 32 THEN 'Bairro Codificado'
+                    ELSE COALESCE(fd.no_bairro, '-')
+                END AS bairro,
+                COALESCE(fd.nu_micro_area, '-') AS microarea,
+                COALESCE(fd.nu_comodo, 0) AS qtd_comodos,
+                COALESCE(fd.qt_morador, 0) AS qtd_moradores,
+                CASE 
+                    WHEN COALESCE(fd.qt_morador, 0) > 30 THEN 'Aberração: Lotação Extrema'
+                    WHEN fd.nu_comodo = 4 AND COALESCE(fd.qt_morador, 0) <= 1 THEN 'Crítico: Vício + Subnotificação Familiar'
+                    WHEN fd.nu_comodo = 4 THEN 'Alerta: 4 Cômodos'
+                    WHEN COALESCE(fd.qt_morador, 0) = 0 THEN 'Crítico: Sem Moradores Declarados'
+                    ELSE 'Regular'
+                END AS status_auditoria
+            FROM tb_fat_cad_domiciliar fd
+            LEFT JOIN tb_cds_cad_domiciliar ccd ON ccd.co_unico_ficha = fd.nu_uuid_ficha
+            WHERE fd.co_dim_profissional = :id
+            ORDER BY fd.co_seq_fat_cad_domiciliar DESC
+            LIMIT :limit OFFSET :offset;
+        """)
+        result = await esus_session.execute(
+            query, {"id": profissional_id, "limit": limit, "offset": offset}
+        )
+        registros = [dict(row._mapping) for row in result.all()]
+
+        return {"total": total_records, "registros": registros}
+
+    async def listar_individuos_detalhado(
+        self,
+        esus_session: AsyncSession,
+        profissional_id: int,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Lista paginada de munícipes com data/hora exata do tablet, nascimento e checagem clínica."""
+
+        query_count = text(
+            "SELECT COUNT(co_seq_fat_cad_individual) FROM tb_fat_cad_individual WHERE co_dim_profissional = :id"
+        )
+        total_records = (
+            await esus_session.execute(query_count, {"id": profissional_id})
+        ).scalar() or 0
+
+        query = text("""
+            SELECT 
+                fi.co_seq_fat_cad_individual AS id_ficha,
+                c.no_cidadao AS nome,
+                COALESCE(c.nu_cpf, 'Sem CPF') AS cpf,
+                TO_CHAR(c.dt_nascimento, 'DD/MM/YYYY') AS nascimento,
+                TO_CHAR(cci.dt_cad_individual, 'DD/MM/YYYY HH24:MI:SS') AS data_hora_cadastro,
+                COALESCE(c.nu_telefone_celular, c.nu_telefone_contato, '-') AS telefone,
+                CASE WHEN fi.st_hipertensao_arterial::text IN ('1', 'true') THEN true ELSE false END AS hipertenso,
+                CASE WHEN fi.st_diabete::text IN ('1', 'true') THEN true ELSE false END AS diabetico,
+                CASE WHEN fi.st_doenca_respiratoria::text IN ('1', 'true') THEN true ELSE false END AS respiratoria,
+                COUNT(fi.co_seq_fat_cad_individual) OVER(PARTITION BY c.nu_cpf) AS repeticoes_cpf
+            FROM tb_fat_cad_individual fi
+            JOIN tb_fat_cidadao_pec fcp ON fcp.co_seq_fat_cidadao_pec = fi.co_fat_cidadao_pec
+            JOIN tb_cidadao c ON c.co_seq_cidadao = fcp.co_cidadao
+            LEFT JOIN tb_cds_cad_individual cci ON cci.co_unico_ficha = fi.nu_uuid_ficha
+            WHERE fi.co_dim_profissional = :id
+            ORDER BY repeticoes_cpf DESC, c.no_cidadao ASC
+            LIMIT :limit OFFSET :offset;
+        """)
+        result = await esus_session.execute(
+            query, {"id": profissional_id, "limit": limit, "offset": offset}
+        )
+        registros = [dict(row._mapping) for row in result.all()]
+
+        return {"total": total_records, "registros": registros}
+
+    async def listar_duplicidades_agente(
+        self,
+        esus_session: AsyncSession,
+        profissional_id: int,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Retorna as duplicidades paginadas."""
+
+        cte = """
+            WITH BaseCidadao AS (
+                SELECT 
+                    fi.co_seq_fat_cad_individual AS id_ficha,
+                    c.no_cidadao AS nome,
+                    c.nu_cpf AS cpf,
+                    c.nu_cns AS cns,
+                    COALESCE(c.nu_telefone_celular, c.nu_telefone_contato, '-') AS telefone_usado,
+                    dp.nu_cns AS cns_acs,
+                    dp.no_profissional AS nome_acs
+                FROM tb_fat_cad_individual fi
+                JOIN tb_fat_cidadao_pec fcp ON fcp.co_seq_fat_cidadao_pec = fi.co_fat_cidadao_pec
+                JOIN tb_cidadao c ON c.co_seq_cidadao = fcp.co_cidadao
+                JOIN tb_dim_profissional dp ON dp.co_seq_dim_profissional = fi.co_dim_profissional
+                WHERE fi.co_dim_profissional = :id
+            )
+        """
+
+        query_count = text(
+            cte
+            + """
+            SELECT COUNT(*) FROM (
+                SELECT 1 FROM BaseCidadao 
+                GROUP BY nome, cpf, cns, cns_acs, nome_acs, telefone_usado 
+                HAVING COUNT(id_ficha) > 1
+            ) AS sub
+        """
+        )
+        total_records = (
+            await esus_session.execute(query_count, {"id": profissional_id})
+        ).scalar() or 0
+
+        query = text(
+            cte
+            + """
+            SELECT 
+                nome,
+                cpf,
+                COUNT(id_ficha) AS total_cadastros_gerados,
+                STRING_AGG(id_ficha::text, ', ' ORDER BY id_ficha DESC) AS ids_fichas,
+                telefone_usado,
+                CASE 
+                    WHEN cns = cns_acs OR nome_acs ILIKE nome THEN true 
+                    ELSE false 
+                END AS is_autocadastro
+            FROM BaseCidadao
+            GROUP BY nome, cpf, cns, cns_acs, nome_acs, telefone_usado
+            HAVING COUNT(id_ficha) > 1
+            ORDER BY total_cadastros_gerados DESC
+            LIMIT :limit OFFSET :offset;
+        """
+        )
+        result = await esus_session.execute(
+            query, {"id": profissional_id, "limit": limit, "offset": offset}
+        )
+        registros = [dict(row._mapping) for row in result.all()]
+
+        return {"total": total_records, "registros": registros}
 
     # ==========================================
     # MÉTODOS PRIVADOS DE EXTRAÇÃO DE DADOS (DB)
@@ -215,17 +412,15 @@ class AuditoriaCadastralService:
 
     def _calcular_eficiencia_e_alertas(
         self,
-        comodos_list: list[dict[str, Any]],
-        telefones_list: list[dict[str, Any]],
-        moradores_list: list[dict[str, Any]],
-        saude_dict: dict[str, Any],
+        comodos_list: list,
+        telefones_list: list,
+        moradores_list: list,
+        saude_dict: dict,
         total_ind: int,
     ) -> tuple[float, list[str]]:
-
         penalidades = 0.0
         pontos_atencao = []
 
-        # Regra 1: Cômodos
         if (
             comodos_list
             and comodos_list[0]["percentual"] > self.LIMITE_COMODOS_PERCENTUAL
@@ -235,7 +430,6 @@ class AuditoriaCadastralService:
                 f"Vício de digitação: {comodos_list[0]['percentual']}% das casas têm {comodos_list[0]['comodos']} cômodos."
             )
 
-        # Regra 2: Telefones Clonados
         if telefones_list:
             maior_repeticao = telefones_list[0]["qtd"]
             if maior_repeticao > self.LIMITE_TELEFONES_CRITICO:
@@ -249,7 +443,6 @@ class AuditoriaCadastralService:
                     f"Duplicações de telefones identificadas (máximo de {maior_repeticao} munícipes com mesmo número)."
                 )
 
-        # Regra 3: Subnotificação Familiar
         casas_unipessoais_ou_nulas = sum(
             item["percentual"]
             for item in moradores_list
@@ -261,7 +454,6 @@ class AuditoriaCadastralService:
                 f"Subnotificação familiar: {casas_unipessoais_ou_nulas:.1f}% dos domicílios têm apenas 1 morador ou dado nulo."
             )
 
-        # Regra 4: Subnotificação Epidemiológica
         if total_ind > 0:
             pct_hipertensao = (saude_dict["hipertensos"] / total_ind) * 100
             if pct_hipertensao < self.LIMITE_HIPERTENSAO_MINIMO:
@@ -276,8 +468,7 @@ class AuditoriaCadastralService:
                     "Omissão total de Doenças Respiratórias (Asma/DPOC com 0 casos)."
                 )
 
-        taxa_eficiencia = max(0.0, round(100.0 - penalidades, 2))
-        return taxa_eficiencia, pontos_atencao
+        return max(0.0, round(100.0 - penalidades, 2)), pontos_atencao
 
     def _determinar_classificacao(self, taxa_eficiencia: float) -> str:
         if taxa_eficiencia >= 85.0:

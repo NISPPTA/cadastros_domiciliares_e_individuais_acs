@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,15 +29,14 @@ async def carregar_painel_auditoria(
     if agente_id:
         relatorio = await service.auditar_acs(esus_session, agente_id)
 
-    return templates.TemplateResponse(
-        "auditoria.html",
-        {
-            "request": request,
-            "agentes": agentes,
-            "agente_selecionado": agente_id,
-            "relatorio": relatorio,
-        },
-    )
+    context = {
+        "request": request,
+        "agentes": agentes,
+        "agente_selecionado": agente_id,
+        "relatorio": relatorio,
+    }
+
+    return templates.TemplateResponse(request, "auditoria.html", context)
 
 
 @router.get("/pdf/{agente_id}", summary="Baixar Laudo em PDF")
@@ -58,3 +57,78 @@ async def baixar_laudo_pdf(agente_id: int, esus_session: DbSession):
             "Content-Disposition": f"attachment; filename=laudo_acs_{agente_id}.pdf"
         },
     )
+
+
+@router.get("/api/domicilios/{agente_id}", summary="API - Domicílios Auditados")
+async def api_domicilios(
+    agente_id: int, esus_session: DbSession, limit: int = 10, offset: int = 0
+):
+    """Retorna os cadastros domiciliares com paginação dinâmica."""
+    return await service.listar_domicilios_detalhado(
+        esus_session, agente_id, limit, offset
+    )
+
+
+@router.get(
+    "/api/individuos/{agente_id}", summary="API - Indivíduos e Doenças Crônicas"
+)
+async def api_individuos(
+    agente_id: int, esus_session: DbSession, limit: int = 10, offset: int = 0
+):
+    """Retorna a folha clínica e telefones dos munícipes com contagem de repetição de CPF."""
+    return await service.listar_individuos_detalhado(
+        esus_session, agente_id, limit, offset
+    )
+
+
+@router.get(
+    "/api/duplicidades/{agente_id}", summary="API - Cidadãos Cadastrados em Duplicidade"
+)
+async def api_duplicidades(
+    agente_id: int, esus_session: DbSession, limit: int = 10, offset: int = 0
+):
+    """Identifica munícipes cadastrados mais de uma vez pelo mesmo profissional (inflação de meta)."""
+    return await service.listar_duplicidades_agente(
+        esus_session, agente_id, limit, offset
+    )
+
+
+# 1. Endpoint do Autocomplete (busca dinâmica a partir de 3 caracteres)
+@router.get("/api/busca-agentes", summary="Busca Dinâmica de Agentes")
+async def buscar_agentes_dinamico(
+    q: str = Query(
+        ..., min_length=1, description="Termo de busca com ao menos 3 caracteres"
+    ),
+    esus_session: DbSession = None,
+):
+    if len(q.strip()) < 3:
+        return JSONResponse(content=[])
+    agentes = await service.buscar_acs_por_termo(esus_session, q.strip())
+    return JSONResponse(content=agentes)
+
+
+# 2. Rota que renderiza a nova página de Inspeção Pericial
+@router.get("/inspecao/", summary="Página de Inspeção Pericial (Sindicância)")
+async def carregar_tela_inspecao(
+    request: Request,
+    agente_id: int | None = Query(None),
+    esus_session: DbSession = None,
+):
+    agente_selecionado = None
+    relatorio = None
+
+    if agente_id:
+        # Busca apenas os indicadores do laudo principal
+        relatorio = await service.auditar_acs(esus_session, agente_id)
+        agente_selecionado = {
+            "id": agente_id,
+            "nome": relatorio.nome_acs,
+        }
+        # As tabelas agora são carregadas exclusivamente via AJAX para acelerar o carregamento.
+
+    context = {
+        "request": request,
+        "agente_selecionado": agente_selecionado,
+        "relatorio": relatorio,
+    }
+    return templates.TemplateResponse(request, "inspecao.html", context)

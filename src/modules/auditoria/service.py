@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +37,9 @@ class AuditoriaCadastralService:
     PENALIDADE_HIPERTENSAO = 15.0
     PENALIDADE_RESPIRATORIA = 10.0
 
-    async def listar_acs_ativos(self, esus_session: AsyncSession) -> list[dict[str, Any]]:
+    async def listar_acs_ativos(
+        self, esus_session: AsyncSession
+    ) -> list[dict[str, Any]]:
         """Recupera todos os profissionais cadastrados como ACS no e-SUS PEC."""
         query = text("""
             SELECT DISTINCT 
@@ -50,9 +53,13 @@ class AuditoriaCadastralService:
             ORDER BY dp.no_profissional ASC;
         """)
         result = await esus_session.execute(query)
-        return [{"id": row.id, "nome": row.nome, "cns": row.cns} for row in result.all()]
+        return [
+            {"id": row.id, "nome": row.nome, "cns": row.cns} for row in result.all()
+        ]
 
-    async def auditar_acs(self, esus_session: AsyncSession, profissional_id: int) -> RelatorioAuditoriaACS:
+    async def auditar_acs(
+        self, esus_session: AsyncSession, profissional_id: int
+    ) -> RelatorioAuditoriaACS:
         """Executa a auditoria completa de um agente delegando responsabilidades a métodos especialistas."""
         params = {"id": profissional_id}
 
@@ -90,11 +97,17 @@ class AuditoriaCadastralService:
     # MÉTODOS PRIVADOS DE EXTRAÇÃO DE DADOS (DB)
     # ==========================================
 
-    async def _buscar_nome_acs(self, session: AsyncSession, params: dict[str, Any]) -> str:
-        query = text("SELECT no_profissional FROM tb_dim_profissional WHERE co_seq_dim_profissional = :id")
+    async def _buscar_nome_acs(
+        self, session: AsyncSession, params: dict[str, Any]
+    ) -> str:
+        query = text(
+            "SELECT no_profissional FROM tb_dim_profissional WHERE co_seq_dim_profissional = :id"
+        )
         return (await session.execute(query, params)).scalar() or "Não Identificado"
 
-    async def _buscar_comodos(self, session: AsyncSession, params: dict[str, Any]) -> list[dict[str, Any]]:
+    async def _buscar_comodos(
+        self, session: AsyncSession, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         query = text("""
             SELECT 
                 COALESCE(fd.nu_comodo, 0) AS qtd_comodos,
@@ -106,9 +119,18 @@ class AuditoriaCadastralService:
             ORDER BY total DESC;
         """)
         result = await session.execute(query, params)
-        return [{"comodos": r.qtd_comodos, "total": r.total, "percentual": float(r.percentual or 0)} for r in result.all()]
+        return [
+            {
+                "comodos": r.qtd_comodos,
+                "total": r.total,
+                "percentual": float(r.percentual or 0),
+            }
+            for r in result.all()
+        ]
 
-    async def _buscar_telefones_duplicados(self, session: AsyncSession, params: dict[str, Any]) -> list[dict[str, Any]]:
+    async def _buscar_telefones_duplicados(
+        self, session: AsyncSession, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         query = text("""
             SELECT 
                 COALESCE(c.nu_telefone_celular, c.nu_telefone_contato) AS telefone,
@@ -126,7 +148,9 @@ class AuditoriaCadastralService:
         result = await session.execute(query, params)
         return [{"telefone": r.telefone, "qtd": r.qtd} for r in result.all()]
 
-    async def _buscar_moradores(self, session: AsyncSession, params: dict[str, Any]) -> list[dict[str, Any]]:
+    async def _buscar_moradores(
+        self, session: AsyncSession, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         query = text("""
             SELECT 
                 fd.qt_morador AS qtd_morador,
@@ -138,9 +162,18 @@ class AuditoriaCadastralService:
             ORDER BY total DESC;
         """)
         result = await session.execute(query, params)
-        return [{"qtd_morador": r.qtd_morador, "total": r.total, "percentual": float(r.percentual or 0)} for r in result.all()]
+        return [
+            {
+                "qtd_morador": r.qtd_morador,
+                "total": r.total,
+                "percentual": float(r.percentual or 0),
+            }
+            for r in result.all()
+        ]
 
-    async def _buscar_dados_saude(self, session: AsyncSession, params: dict[str, Any]) -> dict[str, Any]:
+    async def _buscar_dados_saude(
+        self, session: AsyncSession, params: dict[str, Any]
+    ) -> dict[str, Any]:
         query = text("""
             SELECT 
                 COUNT(fi.co_seq_fat_cad_individual) AS total_cadastros,
@@ -154,9 +187,17 @@ class AuditoriaCadastralService:
             WHERE fi.co_dim_profissional = :id;
         """)
         r_saude = (await session.execute(query, params)).first()
-        
+
         if not r_saude:
-            return {"total_cadastros": 0, "hipertensos": 0, "diabeticos": 0, "cardiopatas": 0, "respiratoria": 0, "cancer": 0, "fumantes": 0}
+            return {
+                "total_cadastros": 0,
+                "hipertensos": 0,
+                "diabeticos": 0,
+                "cardiopatas": 0,
+                "respiratoria": 0,
+                "cancer": 0,
+                "fumantes": 0,
+            }
 
         return {
             "total_cadastros": r_saude.total_cadastros or 0,
@@ -178,43 +219,62 @@ class AuditoriaCadastralService:
         telefones_list: list[dict[str, Any]],
         moradores_list: list[dict[str, Any]],
         saude_dict: dict[str, Any],
-        total_ind: int
+        total_ind: int,
     ) -> tuple[float, list[str]]:
-        
+
         penalidades = 0.0
         pontos_atencao = []
 
         # Regra 1: Cômodos
-        if comodos_list and comodos_list[0]["percentual"] > self.LIMITE_COMODOS_PERCENTUAL:
+        if (
+            comodos_list
+            and comodos_list[0]["percentual"] > self.LIMITE_COMODOS_PERCENTUAL
+        ):
             penalidades += self.PENALIDADE_COMODOS
-            pontos_atencao.append(f"Vício de digitação: {comodos_list[0]['percentual']}% das casas têm {comodos_list[0]['comodos']} cômodos.")
+            pontos_atencao.append(
+                f"Vício de digitação: {comodos_list[0]['percentual']}% das casas têm {comodos_list[0]['comodos']} cômodos."
+            )
 
         # Regra 2: Telefones Clonados
         if telefones_list:
             maior_repeticao = telefones_list[0]["qtd"]
             if maior_repeticao > self.LIMITE_TELEFONES_CRITICO:
                 penalidades += self.PENALIDADE_TELEFONES_CRITICO
-                pontos_atencao.append(f"Uso de contato clonado: telefone {telefones_list[0]['telefone']} usado em {maior_repeticao} cadastros.")
+                pontos_atencao.append(
+                    f"Uso de contato clonado: telefone {telefones_list[0]['telefone']} usado em {maior_repeticao} cadastros."
+                )
             elif maior_repeticao > self.LIMITE_TELEFONES_ATENCAO:
                 penalidades += self.PENALIDADE_TELEFONES_ATENCAO
-                pontos_atencao.append(f"Duplicações de telefones identificadas (máximo de {maior_repeticao} munícipes com mesmo número).")
+                pontos_atencao.append(
+                    f"Duplicações de telefones identificadas (máximo de {maior_repeticao} munícipes com mesmo número)."
+                )
 
         # Regra 3: Subnotificação Familiar
-        casas_unipessoais_ou_nulas = sum(item["percentual"] for item in moradores_list if item["qtd_morador"] in (1, None))
+        casas_unipessoais_ou_nulas = sum(
+            item["percentual"]
+            for item in moradores_list
+            if item["qtd_morador"] in (1, None)
+        )
         if casas_unipessoais_ou_nulas > self.LIMITE_MORADORES_UNIPESSOAL:
             penalidades += self.PENALIDADE_MORADORES
-            pontos_atencao.append(f"Subnotificação familiar: {casas_unipessoais_ou_nulas:.1f}% dos domicílios têm apenas 1 morador ou dado nulo.")
+            pontos_atencao.append(
+                f"Subnotificação familiar: {casas_unipessoais_ou_nulas:.1f}% dos domicílios têm apenas 1 morador ou dado nulo."
+            )
 
         # Regra 4: Subnotificação Epidemiológica
         if total_ind > 0:
             pct_hipertensao = (saude_dict["hipertensos"] / total_ind) * 100
             if pct_hipertensao < self.LIMITE_HIPERTENSAO_MINIMO:
                 penalidades += self.PENALIDADE_HIPERTENSAO
-                pontos_atencao.append(f"Subnotificação de Hipertensão: apenas {pct_hipertensao:.1f}% declarados (esperado > 22%).")
-            
+                pontos_atencao.append(
+                    f"Subnotificação de Hipertensão: apenas {pct_hipertensao:.1f}% declarados (esperado > 22%)."
+                )
+
             if saude_dict["respiratoria"] == 0:
                 penalidades += self.PENALIDADE_RESPIRATORIA
-                pontos_atencao.append("Omissão total de Doenças Respiratórias (Asma/DPOC com 0 casos).")
+                pontos_atencao.append(
+                    "Omissão total de Doenças Respiratórias (Asma/DPOC com 0 casos)."
+                )
 
         taxa_eficiencia = max(0.0, round(100.0 - penalidades, 2))
         return taxa_eficiencia, pontos_atencao

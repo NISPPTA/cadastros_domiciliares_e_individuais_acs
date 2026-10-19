@@ -17,13 +17,23 @@
             </div>
             
             {% if relatorio %}
-            <!-- Botão de Emissão de Laudo PDF -->
-            <a href="/auditoria/pdf/{{ relatorio.profissional_id }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Baixar Laudo PDF
-            </a>
+            <div class="flex items-center gap-3">
+                <!-- Botão que leva para a Bancada Pericial do agente -->
+                <a href="/auditoria/inspecao/?agente_id={{ relatorio.profissional_id }}" class="bg-blue-700 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors flex items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                    Raio-X / Inspecionar Fichas
+                </a>
+
+                <!-- Botão de Emissão de Laudo PDF -->
+                <a href="/auditoria/pdf/{{ relatorio.profissional_id }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors flex items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Baixar Laudo PDF
+                </a>
+            </div>
             {% endif %}
         </header>
 

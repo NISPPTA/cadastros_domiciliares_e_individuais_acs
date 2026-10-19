@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bancada Pericial de Cadastros - Sindicância e-SUS PEC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Cabeçalho -->
+        <header class="mb-6 border-b border-slate-200 pb-5 flex justify-between items-center">
+            <div>
+                <a href="/auditoria/" class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-semibold mb-2">
+                    &larr; Voltar ao Painel Executivo
+                </a>
+                <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Bancada Pericial de Inspeção Cadastral</h1>
+                <p class="text-slate-500 text-sm">Comissão de Sindicância e Instrução Probatória de Processo Administrativo (PAD)</p>
+            </div>
+            {% if agente_selecionado %}
+            <a href="/auditoria/pdf/{{ agente_selecionado.id }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center gap-2 shadow-sm">
+                Baixar Laudo Técnico em PDF
+            </a>
+            {% endif %}
+        </header>
+
+        {% if relatorio %}
+        <!-- Ficha de Identificação do Agente -->
+        <div class="bg-slate-900 text-white p-5 rounded-xl mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
+            <div>
+                <span class="text-xs uppercase text-slate-400 tracking-wider">Profissional em Análise</span>
+                <h2 class="text-xl font-bold mt-0.5">{{ relatorio.nome_acs }}</h2>
+                <p class="text-xs text-slate-300">Base Vinculada: {{ relatorio.total_domicilios }} Domicílios | {{ relatorio.total_cadastros_individuais }} Munícipes</p>
+            </div>
+            <div class="text-right">
+                <span class="text-xs uppercase text-slate-400 tracking-wider">Índice de Qualidade (IQC)</span>
+                <p class="text-2xl font-black {% if relatorio.taxa_eficiencia >= 80 %}text-emerald-400{% elif relatorio.taxa_eficiencia >= 50 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                    {{ relatorio.taxa_eficiencia }}%
+                </p>
+                <span class="text-xs text-slate-300 uppercase font-semibold">{{ relatorio.classificacao }}</span>
+            </div>
+        </div>
+
+        <!-- Abas -->
+        <div class="border-b border-slate-200 mb-6 flex gap-4">
+            <button onclick="mudarAba('aba_duplicidades')" id="btn_aba_duplicidades" class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2">
+                <span>⚠️ Duplicidades & Autocadastros</span>
+                <span id="badge_duplicidades" class="bg-rose-100 text-rose-700 text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">...</span>
+            </button>
+            <button onclick="mudarAba('aba_domicilios')" id="btn_aba_domicilios" class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                <span>🏠 Domicílios Inspecionados</span>
+                <span id="badge_domicilios" class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full animate-pulse">...</span>
+            </button>
+            <button onclick="mudarAba('aba_individuos')" id="btn_aba_individuos" class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                <span>👤 Munícipes & Dados Clínicos</span>
+                <span id="badge_individuos" class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full animate-pulse">...</span>
+            </button>
+        </div>
+
+        <!-- ABA 1: DUPLICIDADES -->
+        <div id="aba_duplicidades" class="tab-content block">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Cidadãos com Múltiplas Fichas Cadastradas pelo Agente</h3>
+                        <p class="text-xs text-slate-500">Comprova a inflação deliberada de produção e autocadastro.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-600">Exibir:</label>
+                        <select id="select_limit_dup" class="text-xs border border-slate-300 rounded p-1" onchange="resetPagina('dup')">
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto relative min-h-[200px]">
+                    <div id="loading_dup" class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
+                        <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
+                    </div>
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Nome do Cidadão</th>
+                                <th class="p-3">CPF</th>
+                                <th class="p-3 text-center">Fichas Geradas</th>
+                                <th class="p-3">IDs Fichas</th>
+                                <th class="p-3">Telefone Registrado</th>
+                                <th class="p-3 text-center">Tipo de Fraude</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_dup" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+                    <span id="info_pag_dup" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
+                    <div class="flex gap-2">
+                        <button onclick="mudarPagina('dup', -1)" id="btn_prev_dup" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
+                        <button onclick="mudarPagina('dup', 1)" id="btn_next_dup" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 2: DOMICÍLIOS -->
+        <div id="aba_domicilios" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Conferência de Cadastros Domiciliares</h3>
+                        <p class="text-xs text-slate-500">Inspecione a relação cômodos x moradores e solicite verificação in loco.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-600">Exibir:</label>
+                        <select id="select_limit_dom" class="text-xs border border-slate-300 rounded p-1" onchange="resetPagina('dom')">
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto relative min-h-[200px]">
+                    <div id="loading_dom" class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
+                        <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
+                    </div>
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">ID Ficha</th>
+                                <th class="p-3">Endereço de Auditoria</th>
+                                <th class="p-3 text-center">Microárea</th>
+                                <th class="p-3 text-center">Cômodos</th>
+                                <th class="p-3 text-center">Moradores</th>
+                                <th class="p-3 text-left">Diagnóstico da Ficha</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_dom" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+                    <span id="info_pag_dom" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
+                    <div class="flex gap-2">
+                        <button onclick="mudarPagina('dom', -1)" id="btn_prev_dom" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
+                        <button onclick="mudarPagina('dom', 1)" id="btn_next_dom" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 3: MUNÍCIPES -->
+        <div id="aba_individuos" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Conferência de Cadastros Individuais e Patologias Crônicas</h3>
+                        <p class="text-xs text-slate-500">Verifica patologias anotadas e informações cadastrais do cidadão.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-600">Exibir:</label>
+                        <select id="select_limit_ind" class="text-xs border border-slate-300 rounded p-1" onchange="resetPagina('ind')">
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto relative min-h-[200px]">
+                    <div id="loading_ind" class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
+                        <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
+                    </div>
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">ID Ficha</th>
+                                <th class="p-3">Munícipe</th>
+                                <th class="p-3">CPF</th>
+                                <th class="p-3">Nascimento</th>
+                                <th class="p-3 text-center text-blue-700">Data/Hora Inserção</th>
+                                <th class="p-3">Telefone</th>
+                                <th class="p-3 text-center">Hipertenso</th>
+                                <th class="p-3 text-center">Diabético</th>
+                                <th class="p-3 text-center">Respiratória</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_ind" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+                    <span id="info_pag_ind" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
+                    <div class="flex gap-2">
+                        <button onclick="mudarPagina('ind', -1)" id="btn_prev_ind" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
+                        <button onclick="mudarPagina('ind', 1)" id="btn_next_ind" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-20 bg-white border border-dashed border-slate-300 rounded-2xl">
+            <p class="text-slate-400 text-base">Acesse esta página a partir do painel de auditoria selecionando um agente.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const agenteIdAtual = "{{ agente_selecionado.id if agente_selecionado else '' }}";
+        
+        function mudarAba(abaId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('block'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-blue-600', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-slate-500');
+            });
+            document.getElementById(abaId).classList.remove('hidden');
+            document.getElementById(abaId).classList.add('block');
+            const btnAtivo = document.getElementById('btn_' + abaId);
+            btnAtivo.classList.remove('border-transparent', 'text-slate-500');
+            btnAtivo.classList.add('border-blue-600', 'text-blue-600');
+        }
+
+        // Sistema Unificado de Paginação para as 3 Abas
+        const configs = {
+            'dup': { url: '/auditoria/api/duplicidades/', page: 0, total: 0 },
+            'dom': { url: '/auditoria/api/domicilios/', page: 0, total: 0 },
+            'ind': { url: '/auditoria/api/individuos/', page: 0, total: 0 }
+        };
+
+        async function carregarTabela(tipo) {
+            if (!agenteIdAtual) return;
+            
+            const conf = configs[tipo];
+            const limit = parseInt(document.getElementById(`select_limit_${tipo}`).value);
+            const offset = conf.page * limit;
+            
+            document.getElementById(`loading_${tipo}`).classList.remove('hidden');
+            
+            try {
+                const response = await fetch(`${conf.url}${agenteIdAtual}?limit=${limit}&offset=${offset}`);
+                const data = await response.json();
+                
+                conf.total = data.total || 0;
+                
+                const badge = document.getElementById(`badge_${tipo === 'dup' ? 'duplicidades' : (tipo === 'dom' ? 'domicilios' : 'individuos')}`);
+                if(badge) {
+                    badge.innerText = conf.total;
+                    badge.classList.remove('animate-pulse');
+                }
+
+                const tbody = document.getElementById(`tbody_${tipo}`);
+                tbody.innerHTML = '';
+
+                if (!data.registros || data.registros.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
+                } else {
+                    data.registros.forEach(r => {
+                        let rowHtml = '';
+                        
+                        if (tipo === 'dup') {
+                            const badge = r.is_autocadastro 
+                                ? `<span class="bg-rose-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-full uppercase">Autocadastro</span>`
+                                : `<span class="bg-amber-100 text-amber-800 font-semibold text-[10px] px-2 py-0.5 rounded-full">Recadastramento</span>`;
+                            const bg = r.is_autocadastro ? 'bg-rose-50/50' : '';
+                            
+                            rowHtml = `<tr class="hover:bg-slate-50 border-b border-slate-100 ${bg}">
+                                <td class="p-3 font-semibold text-slate-800">${r.nome}</td>
+                                <td class="p-3 font-mono text-slate-600">${r.cpf}</td>
+                                <td class="p-3 text-center font-bold text-rose-600 text-sm">${r.total_cadastros_gerados}x</td>
+                                <td class="p-3 font-mono text-slate-500 text-[11px] truncate max-w-[200px] block" title="${r.ids_fichas}">${r.ids_fichas}</td>
+                                <td class="p-3 font-mono text-slate-600">${r.telefone_usado}</td>
+                                <td class="p-3 text-center">${badge}</td>
+                            </tr>`;
+                        } 
+                        else if (tipo === 'dom') {
+                            let badgeClass = "bg-emerald-100 text-emerald-800";
+                            if (r.status_auditoria.includes('Aberração')) badgeClass = "bg-rose-600 text-white";
+                            else if (r.status_auditoria.includes('Crítico')) badgeClass = "bg-rose-100 text-rose-700";
+                            else if (r.status_auditoria.includes('Alerta')) badgeClass = "bg-amber-100 text-amber-800";
+
+                            const end = r.logradouro.includes('Codificada') 
+                                ? `<span class="text-rose-600 font-bold">${r.logradouro}</span>`
+                                : `${r.logradouro}, ${r.numero} <br><span class="text-[10px] text-slate-500 uppercase">${r.bairro}</span>`;
+
+                            rowHtml = `<tr class="hover:bg-slate-50 border-b border-slate-100">
+                                <td class="p-3 font-mono font-bold text-blue-700">${r.id_ficha}</td>
+                                <td class="p-3 text-slate-800 font-medium">${end}</td>
+                                <td class="p-3 text-center font-mono text-slate-600">${r.microarea}</td>
+                                <td class="p-3 text-center font-bold text-slate-700">${r.qtd_comodos}</td>
+                                <td class="p-3 text-center font-bold ${r.qtd_moradores > 30 ? 'text-rose-600' : ''}">${r.qtd_moradores}</td>
+                                <td class="p-3"><span class="${badgeClass} font-semibold text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">${r.status_auditoria}</span></td>
+                            </tr>`;
+                        }
+                        else if (tipo === 'ind') {
+                            const fmtSimNao = val => val ? `<span class="text-emerald-600">SIM</span>` : `<span class="text-slate-300">NÃO</span>`;
+                            const dataHoraFormatada = r.data_hora_cadastro ? r.data_hora_cadastro : `<span class="text-slate-400 text-[10px]">Sem Registro</span>`;
+                            
+                            rowHtml = `<tr class="hover:bg-slate-50 border-b border-slate-100">
+                                <td class="p-3 font-mono text-slate-500">${r.id_ficha}</td>
+                                <td class="p-3 font-semibold text-slate-800">${r.nome}</td>
+                                <td class="p-3 font-mono text-slate-600">${r.cpf}</td>
+                                <td class="p-3 text-slate-600">${r.nascimento}</td>
+                                <td class="p-3 text-center font-mono font-bold text-blue-600">${dataHoraFormatada}</td>
+                                <td class="p-3 font-mono text-slate-700 font-medium">${r.telefone}</td>
+                                <td class="p-3 text-center font-bold">${fmtSimNao(r.hipertenso)}</td>
+                                <td class="p-3 text-center font-bold">${fmtSimNao(r.diabetico)}</td>
+                                <td class="p-3 text-center font-bold">${fmtSimNao(r.respiratoria)}</td>
+                            </tr>`;
+                        }
+                        tbody.insertAdjacentHTML('beforeend', rowHtml);
+                    });
+                }
+
+                const exibindoAte = Math.min((conf.page + 1) * limit, conf.total);
+                document.getElementById(`info_pag_${tipo}`).innerText = `Mostrando ${conf.total === 0 ? 0 : offset + 1} a ${exibindoAte} de ${conf.total} registros`;
+                
+                document.getElementById(`btn_prev_${tipo}`).disabled = conf.page === 0;
+                document.getElementById(`btn_next_${tipo}`).disabled = exibindoAte >= conf.total;
+
+            } catch (error) {
+                console.error(`Erro no fetch de ${tipo}:`, error);
+            } finally {
+                document.getElementById(`loading_${tipo}`).classList.add('hidden');
+            }
+        }
+
+        function mudarPagina(tipo, direcao) {
+            configs[tipo].page += direcao;
+            carregarTabela(tipo);
+        }
+
+        function resetPagina(tipo) {
+            configs[tipo].page = 0;
+            carregarTabela(tipo);
+        }
+
+        // Inicializa todas as abas simultaneamente
+        if (agenteIdAtual) {
+            carregarTabela('dup');
+            carregarTabela('dom');
+            carregarTabela('ind');
+        }
+    </script>
+</body>
+</html>

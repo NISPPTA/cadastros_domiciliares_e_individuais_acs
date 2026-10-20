@@ -143,6 +143,20 @@ async def api_ficha_domiciliar(id_ficha: int, esus_session: DbSession = None):
     return JSONResponse(content=ficha)
 
 
+@router.get(
+    "/api/ficha-domiciliar/{id_ficha}/visitas",
+    summary="API - Histórico de Visitas Paginado",
+)
+async def api_visitas_domiciliar(
+    id_ficha: int, limit: int = 5, offset: int = 0, esus_session: DbSession = None
+):
+    """Retorna o histórico de visitas paginado de um domicílio específico."""
+    dados = await service.buscar_visitas_domicilio_paginado(
+        esus_session, id_ficha, limit, offset
+    )
+    return JSONResponse(content=dados)
+
+
 # 2. Rota que renderiza a nova página de Inspeção Pericial
 @router.get("/inspecao/", summary="Página de Inspeção Pericial (Sindicância)")
 async def carregar_tela_inspecao(

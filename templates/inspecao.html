@@ -1,333 +1,407 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bancada Pericial de Cadastros - Sindicância e-SUS PEC</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
-
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <!-- Cabeçalho -->
-        <header class="mb-6 border-b border-slate-200 pb-5 flex justify-between items-center">
-            <div>
-                <a href="/auditoria/" class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-semibold mb-2">
-                    &larr; Voltar ao Painel Executivo
-                </a>
-                <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Bancada Pericial de Inspeção Cadastral</h1>
-                <p class="text-slate-500 text-sm">Comissão de Sindicância e Instrução Probatória de Processo Administrativo (PAD)</p>
-            </div>
-            {% if agente_selecionado %}
-            <a href="/auditoria/pdf/{{ agente_selecionado.id }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center gap-2 shadow-sm">
-                Baixar Laudo Técnico em PDF
-            </a>
-            {% endif %}
-        </header>
-
-        {% if relatorio %}
-        <!-- Ficha de Identificação do Agente -->
-        <div class="bg-slate-900 text-white p-5 rounded-xl mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
-            <div>
-                <span class="text-xs uppercase text-slate-400 tracking-wider">Profissional em Análise</span>
-                <h2 class="text-xl font-bold mt-0.5">{{ relatorio.nome_acs }}</h2>
-                <p class="text-xs text-slate-300">Base Vinculada: {{ relatorio.total_domicilios }} Domicílios | {{ relatorio.total_cadastros_individuais }} Munícipes</p>
-            </div>
-            <div class="text-right">
-                <span class="text-xs uppercase text-slate-400 tracking-wider">Índice de Qualidade (IQC)</span>
-                <p class="text-2xl font-black {% if relatorio.taxa_eficiencia >= 80 %}text-emerald-400{% elif relatorio.taxa_eficiencia >= 50 %}text-amber-400{% else %}text-rose-400{% endif %}">
-                    {{ relatorio.taxa_eficiencia }}%
-                </p>
-                <span class="text-xs text-slate-300 uppercase font-semibold">{{ relatorio.classificacao }}</span>
-            </div>
-        </div>
-
-        <!-- Abas -->
-        <div class="border-b border-slate-200 mb-6 flex gap-4">
-            <button onclick="mudarAba('aba_duplicidades')" id="btn_aba_duplicidades" class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2">
-                <span>⚠️ Duplicidades & Autocadastros</span>
-                <span id="badge_duplicidades" class="bg-rose-100 text-rose-700 text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">...</span>
-            </button>
-            <button onclick="mudarAba('aba_domicilios')" id="btn_aba_domicilios" class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
-                <span>🏠 Domicílios Inspecionados</span>
-                <span id="badge_domicilios" class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full animate-pulse">...</span>
-            </button>
-            <button onclick="mudarAba('aba_individuos')" id="btn_aba_individuos" class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
-                <span>👤 Munícipes & Dados Clínicos</span>
-                <span id="badge_individuos" class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full animate-pulse">...</span>
-            </button>
-            <button onclick="mudarAba('aba_busca_reversa')" id="btn_aba_busca_reversa" class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
-                <span>📍 Busca Reversa Territorial</span>
-            </button>
-        </div>
-
-        <!-- ABA 1: DUPLICIDADES -->
-        <div id="aba_duplicidades" class="tab-content block">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Bancada Pericial de Cadastros - Sindicância e-SUS PEC</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Cabeçalho -->
+            <header class="mb-6 border-b border-slate-200 pb-5 flex justify-between items-center">
+                <div>
+                    <a href="/auditoria/"
+                       class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-semibold mb-2">
+                        ← Voltar ao Painel Executivo
+                    </a>
+                    <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Bancada Pericial de Inspeção Cadastral</h1>
+                    <p class="text-slate-500 text-sm">Comissão de Sindicância e Instrução Probatória de Processo Administrativo (PAD)</p>
+                </div>
+                {% if agente_selecionado %}
+                    <a href="/auditoria/pdf/{{ agente_selecionado.id }}"
+                       target="_blank"
+                       class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center gap-2 shadow-sm">
+                        Baixar Laudo Técnico em PDF
+                    </a>
+                {% endif %}
+            </header>
+            {% if relatorio %}
+                <!-- Ficha de Identificação do Agente -->
+                <div class="bg-slate-900 text-white p-5 rounded-xl mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
                     <div>
-                        <h3 class="text-sm font-bold text-slate-800">Cidadãos com Múltiplas Fichas Cadastradas pelo Agente</h3>
-                        <p class="text-xs text-slate-500">Comprova a inflação deliberada de produção e autocadastro.</p>
+                        <span class="text-xs uppercase text-slate-400 tracking-wider">Profissional em Análise</span>
+                        <h2 class="text-xl font-bold mt-0.5">{{ relatorio.nome_acs }}</h2>
+                        <p class="text-xs text-slate-300">Base Vinculada: {{ relatorio.total_domicilios }} Domicílios | {{ relatorio.total_cadastros_individuais }} Munícipes</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-semibold text-slate-600">Exibir:</label>
-                        <select id="select_limit_dup" class="text-xs border border-slate-300 rounded p-1" onchange="resetPagina('dup')">
-                            <option value="10" selected>10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="overflow-x-auto relative min-h-[200px]">
-                    <div id="loading_dup" class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
-                        <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
-                    </div>
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
-                            <tr>
-                                <th class="p-3">Nome do Cidadão</th>
-                                <th class="p-3">CPF</th>
-                                <th class="p-3 text-center">Fichas Geradas</th>
-                                <th class="p-3">IDs Fichas</th>
-                                <th class="p-3">Telefone Registrado</th>
-                                <th class="p-3 text-center">Tipo de Fraude</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody_dup" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
-                <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
-                    <span id="info_pag_dup" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
-                    <div class="flex gap-2">
-                        <button onclick="mudarPagina('dup', -1)" id="btn_prev_dup" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
-                        <button onclick="mudarPagina('dup', 1)" id="btn_next_dup" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
+                    <div class="text-right">
+                        <span class="text-xs uppercase text-slate-400 tracking-wider">Índice de Qualidade (IQC)</span>
+                        <p class="text-2xl font-black {% if relatorio.taxa_eficiencia >= 80 %}text-emerald-400{% elif relatorio.taxa_eficiencia >= 50 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                            {{ relatorio.taxa_eficiencia }}%
+                        </p>
+                        <span class="text-xs text-slate-300 uppercase font-semibold">{{ relatorio.classificacao }}</span>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- ABA 2: DOMICÍLIOS -->
-        <div id="aba_domicilios" class="tab-content hidden">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">Conferência de Cadastros Domiciliares</h3>
-                        <p class="text-xs text-slate-500">Inspecione a relação cômodos x moradores e solicite verificação in loco.</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-semibold text-slate-600">Exibir:</label>
-                        <select id="select_limit_dom" class="text-xs border border-slate-300 rounded p-1" onchange="resetPagina('dom')">
-                            <option value="10" selected>10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="overflow-x-auto relative min-h-[200px]">
-                    <div id="loading_dom" class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
-                        <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
-                    </div>
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
-                            <tr>
-                                <th class="p-3">ID Ficha</th>
-                                <th class="p-3">Endereço de Auditoria</th>
-                                <th class="p-3 text-center">Microárea</th>
-                                <th class="p-3 text-center">Cômodos</th>
-                                <th class="p-3 text-center">Moradores</th>
-                                <th class="p-3 text-left">Diagnóstico da Ficha</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody_dom" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
-                <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
-                    <span id="info_pag_dom" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
-                    <div class="flex gap-2">
-                        <button onclick="mudarPagina('dom', -1)" id="btn_prev_dom" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
-                        <button onclick="mudarPagina('dom', 1)" id="btn_next_dom" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ABA 3: MUNÍCIPES -->
-        <div id="aba_individuos" class="tab-content hidden">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">Conferência de Cadastros Individuais e Patologias Crônicas</h3>
-                        <p class="text-xs text-slate-500">Verifica patologias anotadas e informações cadastrais do cidadão.</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-semibold text-slate-600">Exibir:</label>
-                        <select id="select_limit_ind" class="text-xs border border-slate-300 rounded p-1" onchange="resetPagina('ind')">
-                            <option value="10" selected>10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="overflow-x-auto relative min-h-[200px]">
-                    <div id="loading_ind" class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
-                        <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
-                    </div>
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
-                            <tr>
-                                <th class="p-3">ID Ficha</th>
-                                <th class="p-3">Munícipe</th>
-                                <th class="p-3">CPF</th>
-                                <th class="p-3">Nascimento</th>
-                                <th class="p-3 text-center text-blue-700">Data/Hora Inserção</th>
-                                <th class="p-3">Telefone</th>
-                                <th class="p-3 text-center">Hipertenso</th>
-                                <th class="p-3 text-center">Diabético</th>
-                                <th class="p-3 text-center">Respiratória</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody_ind" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
-                <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
-                    <span id="info_pag_ind" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
-                    <div class="flex gap-2">
-                        <button onclick="mudarPagina('ind', -1)" id="btn_prev_ind" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
-                        <button onclick="mudarPagina('ind', 1)" id="btn_next_ind" class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ABA 4: BUSCA REVERSA TERRITORIAL -->
-        <div id="aba_busca_reversa" class="tab-content hidden">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-5 bg-slate-50 border-b border-slate-200">
-                    <h3 class="text-sm font-bold text-slate-800">Mapeamento Territorial (Qual ACS atende este endereço?)</h3>
-                    <p class="text-xs text-slate-500 mb-4">Pesquise por uma rua para descobrir qual Agente de Saúde tem fichas vinculadas nela.</p>
-                    
-                    <!-- Formulário de Busca -->
-                    <div class="flex flex-wrap gap-3 items-end">
-                        <div class="flex-1 min-w-[200px] relative">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Nome da Rua/Logradouro</label>
-                            <input type="text" id="input_rua" autocomplete="off" placeholder="Ex: Machado, Sete de Setembro..." class="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
-                            <ul id="lista_ruas" class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden z-50 divide-y divide-slate-100"></ul>
-                        </div>
-                        <div class="w-32">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Número (Opcional)</label>
-                            <input type="text" id="input_numero" placeholder="Ex: 705" class="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
-                        </div>
-                        <button onclick="executarBuscaReversa()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors shadow-sm">
-                            Pesquisar
-                        </button>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto relative min-h-[200px] p-4">
-                    <div id="loading_busca" class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
-                        <span class="text-sm font-bold text-blue-600">Rastreando endereço...</span>
-                    </div>
-
-                    <!-- Div para o Resumo dos Agentes -->
-                    <div id="resumo_agentes_busca" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                    </div>
-
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
-                            <tr>
-                                <th class="p-3">Agente Responsável</th>
-                                <th class="p-3">Microárea</th>
-                                <th class="p-3">Endereço Registrado</th>
-                                <th class="p-3">Bairro</th>
-                                <th class="p-3 text-center">Data do Cadastro</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody_busca_reversa" class="divide-y divide-slate-100">
-                            <tr><td colspan="5" class="p-8 text-center text-slate-400">Digite um endereço acima para rastrear o agente responsável.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        {% else %}
-        <div class="text-center py-20 bg-white border border-dashed border-slate-300 rounded-2xl">
-            <p class="text-slate-400 text-base">Acesse esta página a partir do painel de auditoria selecionando um agente.</p>
-        </div>
-        {% endif %}
-
-    <!-- MODAL PRONTUÁRIO DOMICILIAR -->
-        <div id="modal_ficha" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                
-                <!-- Cabeçalho do Modal -->
-                <div class="bg-slate-800 p-5 flex justify-between items-center">
-                    <h2 class="text-white font-bold text-lg flex items-center gap-2">
-                        <span>🏠 Prontuário Domiciliar e Saneamento</span>
-                    </h2>
-                    <button onclick="fecharModalFicha()" class="text-slate-300 hover:text-white transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                <!-- Abas -->
+                <div class="border-b border-slate-200 mb-6 flex gap-4">
+                    <button onclick="mudarAba('aba_duplicidades')"
+                            id="btn_aba_duplicidades"
+                            class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2">
+                        <span>⚠️ Duplicidades & Autocadastros</span>
+                        <span id="badge_duplicidades"
+                              class="bg-rose-100 text-rose-700 text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">...</span>
+                    </button>
+                    <button onclick="mudarAba('aba_domicilios')"
+                            id="btn_aba_domicilios"
+                            class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                        <span>🏠 Domicílios Inspecionados</span>
+                        <span id="badge_domicilios"
+                              class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full animate-pulse">...</span>
+                    </button>
+                    <button onclick="mudarAba('aba_individuos')"
+                            id="btn_aba_individuos"
+                            class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                        <span>👤 Munícipes & Dados Clínicos</span>
+                        <span id="badge_individuos"
+                              class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full animate-pulse">...</span>
+                    </button>
+                    <button onclick="mudarAba('aba_busca_reversa')"
+                            id="btn_aba_busca_reversa"
+                            class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                        <span>📍 Busca Reversa Territorial</span>
                     </button>
                 </div>
-
-                <!-- Corpo do Modal -->
-                <div class="p-6 overflow-y-auto relative min-h-[200px]">
-                    <div id="modal_loading" class="absolute inset-0 bg-white flex justify-center items-center z-10 hidden">
-                        <span class="text-sm font-bold text-blue-600 animate-pulse">Buscando dados no e-SUS PEC...</span>
+                <!-- ABA 1: DUPLICIDADES -->
+                <div id="aba_duplicidades" class="tab-content block">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-800">Cidadãos com Múltiplas Fichas Cadastradas pelo Agente</h3>
+                                <p class="text-xs text-slate-500">Comprova a inflação deliberada de produção e autocadastro.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-semibold text-slate-600">Exibir:</label>
+                                <select id="select_limit_dup"
+                                        class="text-xs border border-slate-300 rounded p-1"
+                                        onchange="resetPagina('dup')">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto relative min-h-[200px]">
+                            <div id="loading_dup"
+                                 class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
+                                <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
+                            </div>
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">Nome do Cidadão</th>
+                                        <th class="p-3">CPF</th>
+                                        <th class="p-3 text-center">Fichas Geradas</th>
+                                        <th class="p-3">IDs Fichas</th>
+                                        <th class="p-3">Telefone Registrado</th>
+                                        <th class="p-3 text-center">Tipo de Fraude</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_dup" class="divide-y divide-slate-100">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+                            <span id="info_pag_dup" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
+                            <div class="flex gap-2">
+                                <button onclick="mudarPagina('dup', -1)"
+                                        id="btn_prev_dup"
+                                        class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
+                                <button onclick="mudarPagina('dup', 1)"
+                                        id="btn_next_dup"
+                                        class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
+                            </div>
+                        </div>
                     </div>
-
-                    <div id="modal_conteudo" class="hidden">
-                        <div class="mb-6 border-b border-slate-200 pb-4">
-                            <p class="text-xs text-slate-500 uppercase font-semibold">Endereço Registrado na Ficha</p>
-                            <p id="m_endereco" class="text-lg font-bold text-slate-800 mt-1">...</p>
-                            <p class="text-xs text-slate-500 mt-1">Data do Cadastro: <span id="m_data" class="font-bold text-slate-700">...</span></p>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                <p class="text-xs text-slate-500 uppercase">Qtd. Cômodos</p>
-                                <p id="m_comodos" class="text-lg font-bold text-slate-800">...</p>
+                </div>
+                <!-- ABA 2: DOMICÍLIOS -->
+                <div id="aba_domicilios" class="tab-content hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-800">Conferência de Cadastros Domiciliares</h3>
+                                <p class="text-xs text-slate-500">Inspecione a relação cômodos x moradores e solicite verificação in loco.</p>
                             </div>
-                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                <p class="text-xs text-slate-500 uppercase">Qtd. Moradores</p>
-                                <p id="m_moradores" class="text-lg font-bold text-slate-800">...</p>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-semibold text-slate-600">Exibir:</label>
+                                <select id="select_limit_dom"
+                                        class="text-xs border border-slate-300 rounded p-1"
+                                        onchange="resetPagina('dom')">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
                             </div>
                         </div>
-
-                        <h3 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-blue-600 pl-2">Saneamento e Moradia</h3>
-                        <ul class="space-y-3 text-sm">
-                            <li class="flex justify-between items-start border-b border-slate-100 pb-2">
-                                <span class="text-slate-500 w-1/3">Abastecimento de Água</span>
-                                <span id="m_agua" class="font-semibold text-slate-800 text-right w-2/3">...</span>
-                            </li>
-                            <li class="flex justify-between items-start border-b border-slate-100 pb-2">
-                                <span class="text-slate-500 w-1/3">Tratamento de Água</span>
-                                <span id="m_tratamento" class="font-semibold text-slate-800 text-right w-2/3">...</span>
-                            </li>
-                            <li class="flex justify-between items-start border-b border-slate-100 pb-2">
-                                <span class="text-slate-500 w-1/3">Escoamento (Banheiro)</span>
-                                <span id="m_esgoto" class="font-semibold text-slate-800 text-right w-2/3">...</span>
-                            </li>
-                            <li class="flex justify-between items-start border-b border-slate-100 pb-2">
-                                <span class="text-slate-500 w-1/3">Destino do Lixo</span>
-                                <span id="m_lixo" class="font-semibold text-slate-800 text-right w-2/3">...</span>
-                            </li>
-                            <li class="flex justify-between items-start pt-1">
-                                <span class="text-slate-500 w-1/3">Animais no Domicílio</span>
-                                <span id="m_animais" class="font-semibold text-slate-800 text-right w-2/3">...</span>
-                            </li>
-                        </ul>
+                        <div class="overflow-x-auto relative min-h-[200px]">
+                            <div id="loading_dom"
+                                 class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
+                                <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
+                            </div>
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">ID Ficha</th>
+                                        <th class="p-3">Endereço de Auditoria</th>
+                                        <th class="p-3 text-center">Microárea</th>
+                                        <th class="p-3 text-center">Cômodos</th>
+                                        <th class="p-3 text-center">Moradores</th>
+                                        <th class="p-3 text-left">Diagnóstico da Ficha</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_dom" class="divide-y divide-slate-100">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+                            <span id="info_pag_dom" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
+                            <div class="flex gap-2">
+                                <button onclick="mudarPagina('dom', -1)"
+                                        id="btn_prev_dom"
+                                        class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
+                                <button onclick="mudarPagina('dom', 1)"
+                                        id="btn_next_dom"
+                                        class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ABA 3: MUNÍCIPES -->
+                <div id="aba_individuos" class="tab-content hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-800">Conferência de Cadastros Individuais e Patologias Crônicas</h3>
+                                <p class="text-xs text-slate-500">Verifica patologias anotadas e informações cadastrais do cidadão.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-semibold text-slate-600">Exibir:</label>
+                                <select id="select_limit_ind"
+                                        class="text-xs border border-slate-300 rounded p-1"
+                                        onchange="resetPagina('ind')">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto relative min-h-[200px]">
+                            <div id="loading_ind"
+                                 class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
+                                <span class="text-sm font-bold text-blue-600">Carregando dados...</span>
+                            </div>
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">ID Ficha</th>
+                                        <th class="p-3">Munícipe</th>
+                                        <th class="p-3">CPF</th>
+                                        <th class="p-3">Nascimento</th>
+                                        <th class="p-3 text-center text-blue-700">Data/Hora Inserção</th>
+                                        <th class="p-3">Telefone</th>
+                                        <th class="p-3 text-center">Hipertenso</th>
+                                        <th class="p-3 text-center">Diabético</th>
+                                        <th class="p-3 text-center">Respiratória</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_ind" class="divide-y divide-slate-100">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+                            <span id="info_pag_ind" class="text-slate-500 font-medium">Mostrando 0 de 0 registros</span>
+                            <div class="flex gap-2">
+                                <button onclick="mudarPagina('ind', -1)"
+                                        id="btn_prev_ind"
+                                        class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Anterior</button>
+                                <button onclick="mudarPagina('ind', 1)"
+                                        id="btn_next_ind"
+                                        class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">Próxima</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ABA 4: BUSCA REVERSA TERRITORIAL -->
+                <div id="aba_busca_reversa" class="tab-content hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-5 bg-slate-50 border-b border-slate-200">
+                            <h3 class="text-sm font-bold text-slate-800">Mapeamento Territorial (Qual ACS atende este endereço?)</h3>
+                            <p class="text-xs text-slate-500 mb-4">Pesquise por uma rua para descobrir qual Agente de Saúde tem fichas vinculadas nela.</p>
+                            <!-- Formulário de Busca -->
+                            <div class="flex flex-wrap gap-3 items-end">
+                                <div class="flex-1 min-w-[200px] relative">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nome da Rua/Logradouro</label>
+                                    <input type="text"
+                                           id="input_rua"
+                                           autocomplete="off"
+                                           placeholder="Ex: Machado, Sete de Setembro..."
+                                           class="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                                    <ul id="lista_ruas"
+                                        class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden z-50 divide-y divide-slate-100">
+                                    </ul>
+                                </div>
+                                <div class="w-32">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Número (Opcional)</label>
+                                    <input type="text"
+                                           id="input_numero"
+                                           placeholder="Ex: 705"
+                                           class="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                                </div>
+                                <button onclick="executarBuscaReversa()"
+                                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors shadow-sm">
+                                    Pesquisar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto relative min-h-[200px] p-4">
+                            <div id="loading_busca"
+                                 class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
+                                <span class="text-sm font-bold text-blue-600">Rastreando endereço...</span>
+                            </div>
+                            <!-- Div para o Resumo dos Agentes -->
+                            <div id="resumo_agentes_busca"
+                                 class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                            </div>
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">Agente Responsável</th>
+                                        <th class="p-3">Microárea</th>
+                                        <th class="p-3">Endereço Registrado</th>
+                                        <th class="p-3">Bairro</th>
+                                        <th class="p-3 text-center">Data do Cadastro</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_busca_reversa" class="divide-y divide-slate-100">
+                                    <tr>
+                                        <td colspan="5"
+                                            class="p-8 text-center text-slate-400">Digite um endereço acima para rastrear o agente responsável.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-20 bg-white border border-dashed border-slate-300 rounded-2xl">
+                    <p class="text-slate-400 text-base">Acesse esta página a partir do painel de auditoria selecionando um agente.</p>
+                </div>
+            {% endif %}
+            <!-- MODAL PRONTUÁRIO DOMICILIAR -->
+            <div id="modal_ficha"
+                 class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                    <!-- Cabeçalho do Modal -->
+                    <div class="bg-slate-800 p-5 flex justify-between items-center">
+                        <h2 class="text-white font-bold text-lg flex items-center gap-2">
+                            <span>🏠 Prontuário Domiciliar e Saneamento</span>
+                        </h2>
+                        <button onclick="fecharModalFicha()"
+                                class="text-slate-300 hover:text-white transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Corpo do Modal -->
+                    <div class="p-6 overflow-y-auto relative min-h-[200px]">
+                        <div id="modal_loading"
+                             class="absolute inset-0 bg-white flex justify-center items-center z-10 hidden">
+                            <span class="text-sm font-bold text-blue-600 animate-pulse">Buscando dados no e-SUS PEC...</span>
+                        </div>
+                        <div id="modal_conteudo" class="hidden">
+                            <div class="mb-6 border-b border-slate-200 pb-4">
+                                <p class="text-xs text-slate-500 uppercase font-semibold">Endereço Registrado na Ficha</p>
+                                <p id="m_endereco" class="text-lg font-bold text-slate-800 mt-1">...</p>
+                                <p class="text-xs text-slate-500 mt-1">Data do Cadastro: <span id="m_data"
+       class="font-bold text-slate-700">...</span></p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-6">
+                                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p class="text-xs text-slate-500 uppercase">Qtd. Cômodos</p>
+                                    <p id="m_comodos" class="text-lg font-bold text-slate-800">...</p>
+                                </div>
+                                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p class="text-xs text-slate-500 uppercase">Qtd. Moradores</p>
+                                    <p id="m_moradores" class="text-lg font-bold text-slate-800">...</p>
+                                </div>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-blue-600 pl-2">Saneamento e Moradia</h3>
+                            <ul class="space-y-3 text-sm">
+                                <li class="flex justify-between items-start border-b border-slate-100 pb-2">
+                                    <span class="text-slate-500 w-1/3">Abastecimento de Água</span>
+                                    <span id="m_agua" class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                                </li>
+                                <li class="flex justify-between items-start border-b border-slate-100 pb-2">
+                                    <span class="text-slate-500 w-1/3">Tratamento de Água</span>
+                                    <span id="m_tratamento"
+                                          class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                                </li>
+                                <li class="flex justify-between items-start border-b border-slate-100 pb-2">
+                                    <span class="text-slate-500 w-1/3">Escoamento (Banheiro)</span>
+                                    <span id="m_esgoto" class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                                </li>
+                                <li class="flex justify-between items-start border-b border-slate-100 pb-2">
+                                    <span class="text-slate-500 w-1/3">Destino do Lixo</span>
+                                    <span id="m_lixo" class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                                </li>
+                                <li class="flex justify-between items-start pt-1">
+                                    <span class="text-slate-500 w-1/3">Animais no Domicílio</span>
+                                    <span id="m_animais"
+                                          class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                                </li>
+                            </ul>
+                            <!-- Nova Sessão: Histórico de Visitas -->
+                            <h3 class="text-sm font-bold text-slate-800 mt-6 mb-3 border-l-4 border-indigo-600 pl-2">Últimas Visitas Registradas (Produção ACS)</h3>
+                            <div class="overflow-hidden border border-slate-200 rounded-lg">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                                        <tr>
+                                            <th class="p-2">Data</th>
+                                            <th class="p-2">Desfecho</th>
+                                            <th class="p-2 text-center">Pressão</th>
+                                            <th class="p-2 text-center">Glicemia</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="m_visitas_tbody" class="divide-y divide-slate-100 bg-white">
+                                        <!-- Preenchido via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- CONTROLES DE PAGINAÇÃO DAS VISITAS -->
+                            <div class="bg-slate-50 p-2 border-t border-slate-200 flex justify-between items-center text-[11px] mt-1 rounded-b-lg">
+                                <span id="m_visitas_info" class="text-slate-500 font-medium">Carregando...</span>
+                                <div class="flex gap-1">
+                                    <button id="btn_m_prev"
+                                            onclick="mudarPaginaVisitas(-1)"
+                                            class="px-2 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 transition-colors">Anterior</button>
+                                    <button id="btn_m_next"
+                                            onclick="mudarPaginaVisitas(1)"
+                                            class="px-2 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 transition-colors">Próxima</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <script>
+        <script>
         const agenteIdAtual = "{{ agente_selecionado.id if agente_selecionado else '' }}";
         
         function mudarAba(abaId) {
@@ -537,8 +611,14 @@
         }
 
         // -----------------------------------------
-        // Modal Prontuário Domiciliar
+        // Modal Prontuário Domiciliar (Com Paginação)
         // -----------------------------------------
+        
+        // Variáveis de controle do Modal
+        let modalFichaIdAtual = null;
+        let modalVisitasPage = 0;
+        const MODAL_VISITAS_LIMIT = 5;
+
         async function abrirFichaDomiciliar(id_ficha) {
             const modal = document.getElementById('modal_ficha');
             const conteudo = document.getElementById('modal_conteudo');
@@ -548,12 +628,16 @@
             conteudo.classList.add('hidden');
             loading.classList.remove('hidden');
 
+            modalFichaIdAtual = id_ficha;
+            modalVisitasPage = 0; // Reseta a página sempre que abre uma ficha nova
+
             try {
+                // Busca os dados da casa
                 const response = await fetch(`/auditoria/api/ficha-domiciliar/${id_ficha}`);
                 if (!response.ok) throw new Error("Ficha não encontrada");
-                
                 const dados = await response.json();
                 
+                // Preenche os dados estruturais do imóvel
                 document.getElementById('m_endereco').innerText = `${dados.rua}, ${dados.numero} - ${dados.bairro}`;
                 document.getElementById('m_data').innerText = dados.data_cadastro;
                 document.getElementById('m_comodos').innerText = dados.qtd_comodos;
@@ -564,6 +648,9 @@
                 document.getElementById('m_lixo').innerText = dados.lixo;
                 document.getElementById('m_animais').innerText = dados.animais;
                 
+                // Carrega a primeira página de visitas (chama a nova API paginada)
+                await carregarVisitasModal();
+
                 loading.classList.add('hidden');
                 conteudo.classList.remove('hidden');
             } catch (error) {
@@ -571,6 +658,66 @@
                 alert("Erro ao carregar os dados detalhados da ficha.");
                 fecharModalFicha();
             }
+        }
+
+        async function carregarVisitasModal() {
+            const tbodyVisitas = document.getElementById('m_visitas_tbody');
+            const offset = modalVisitasPage * MODAL_VISITAS_LIMIT;
+            
+            tbodyVisitas.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs animate-pulse">Buscando histórico de visitas...</td></tr>`;
+            
+            try {
+                const response = await fetch(`/auditoria/api/ficha-domiciliar/${modalFichaIdAtual}/visitas?limit=${MODAL_VISITAS_LIMIT}&offset=${offset}`);
+                const data = await response.json();
+                
+                tbodyVisitas.innerHTML = '';
+                
+                if (data.total === 0) {
+                    tbodyVisitas.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="p-4 text-center bg-rose-50 border-t border-rose-200">
+                                <span class="font-bold text-rose-700 text-sm flex items-center justify-center gap-2">
+                                    ⚠️ Nenhuma visita registrada para esta residência!
+                                </span>
+                                <p class="text-xs text-rose-600 mt-1">Indício de cadastro de gaveta ou ausência de acompanhamento territorial.</p>
+                            </td>
+                        </tr>`;
+                } else {
+                    data.registros.forEach(v => {
+                        let badgeDesfecho = "text-emerald-700 font-semibold";
+                        if (v.desfecho.includes('Ausente') || v.desfecho.includes('Recusada')) {
+                            badgeDesfecho = "text-amber-600 font-bold";
+                        }
+                        
+                        tbodyVisitas.innerHTML += `
+                            <tr class="hover:bg-slate-50 border-b border-slate-100">
+                                <td class="p-2 font-mono text-slate-600">${v.data_visita}</td>
+                                <td class="p-2 ${badgeDesfecho}">${v.desfecho}</td>
+                                <td class="p-2 text-center font-mono text-slate-500">${v.pressao}</td>
+                                <td class="p-2 text-center font-mono text-slate-500">${v.glicemia}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                // Atualiza controles de paginação da barra inferior do Modal
+                const exibindoAte = Math.min((modalVisitasPage + 1) * MODAL_VISITAS_LIMIT, data.total);
+                document.getElementById('m_visitas_info').innerText = data.total === 0 
+                    ? 'Nenhum registro' 
+                    : `${offset + 1} a ${exibindoAte} de ${data.total} visitas`;
+                
+                document.getElementById('btn_m_prev').disabled = modalVisitasPage === 0;
+                document.getElementById('btn_m_next').disabled = exibindoAte >= data.total;
+
+            } catch (e) {
+                console.error("Erro ao carregar visitas", e);
+                tbodyVisitas.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-rose-500">Erro ao carregar histórico.</td></tr>`;
+            }
+        }
+
+        function mudarPaginaVisitas(direcao) {
+            modalVisitasPage += direcao;
+            carregarVisitasModal();
         }
 
         function fecharModalFicha() {
@@ -581,6 +728,7 @@
         document.getElementById('modal_ficha').addEventListener('click', function(e) {
             if (e.target === this) fecharModalFicha();
         });
+
 
         // -----------------------------------------
         // Autocomplete de Ruas (Busca Reversa)
@@ -635,6 +783,6 @@
                 }
             });
         }
-    </script>
-</body>
+        </script>
+    </body>
 </html>

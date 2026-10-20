@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from sqlalchemy import text
@@ -654,7 +655,7 @@ class AuditoriaCadastralService:
     async def buscar_agendamentos_cidadao_paginado(
         self, esus_session: AsyncSession, id_ficha: int, limit: int = 5, offset: int = 0
     ) -> dict[str, Any]:
-        """Busca o histórico de atendimentos clínicos reais de um munícipe na UBS."""
+        """Busca o histórico paginado adicionando IDs para drill-down."""
         query_count = text("""
             SELECT COUNT(fai.co_seq_fat_atd_ind)
             FROM tb_fat_cad_individual fi
@@ -668,6 +669,9 @@ class AuditoriaCadastralService:
 
         query_atend = text("""
             SELECT 
+                fai.co_seq_fat_atd_ind AS id_atendimento,
+                dp.co_seq_dim_profissional AS id_profissional,
+                TO_CHAR(fai.dt_inicial_atendimento, 'YYYY-MM-DD') AS data_iso,
                 TO_CHAR(fai.dt_inicial_atendimento, 'DD/MM/YYYY HH24:MI') AS data_atendimento,
                 COALESCE(dp.no_profissional, 'Não Informado') AS profissional,
                 COALESCE(cbo.no_cbo, 'CBO Não Informado') AS tipo_profissional,
@@ -693,3 +697,53 @@ class AuditoriaCadastralService:
             "total": total,
             "registros": [dict(v._mapping) for v in res_atend.all()],
         }
+
+    async def buscar_detalhes_atendimento(
+        self, esus_session: AsyncSession, id_atendimento: int
+    ) -> dict[str, Any] | None:
+        """Busca os detalhes de duração e diagnósticos (CID/CIAP) de uma consulta específica."""
+        query = text("""
+            SELECT 
+                TO_CHAR(fai.dt_inicial_atendimento, 'DD/MM/YYYY HH24:MI:SS') AS inicio,
+                TO_CHAR(fai.dt_final_atendimento, 'DD/MM/YYYY HH24:MI:SS') AS fim,
+                -- Correção do Erro 2: Convertendo o Decimal para Integer no banco
+                COALESCE(CAST(ROUND(EXTRACT(EPOCH FROM (fai.dt_final_atendimento - fai.dt_inicial_atendimento))/60) AS INTEGER), 0) AS duracao_minutos,
+                COALESCE(fai.ds_filtro_ciaps, 'Nenhum CIAP registrado') AS ciaps,
+                COALESCE(fai.ds_filtro_cids, 'Nenhum CID registrado') AS cids,
+                COALESCE(fai.ds_filtro_proced_avaliados, 'Nenhum') AS procedimentos,
+                CASE WHEN fai.st_ficou_em_observacao = 1 THEN 'Sim' ELSE 'Não' END AS observacao
+            FROM tb_fat_atendimento_individual fai
+            WHERE fai.co_seq_fat_atd_ind = :id
+        """)
+        row = (await esus_session.execute(query, {"id": id_atendimento})).first()
+        return dict(row._mapping) if row else None
+
+    async def buscar_producao_profissional_dia(
+        self, esus_session: AsyncSession, id_profissional: int, data_iso: str
+    ) -> list[dict[str, Any]]:
+        """Busca toda a agenda/produção de um profissional em um dia específico."""
+
+        # Converte a string (YYYY-MM-DD) para um objeto date real do Python
+        # O driver asyncpg exige isso para fazer comparações com campos timestamp no PostgreSQL
+        data_obj = date.fromisoformat(data_iso)
+
+        query = text("""
+            SELECT 
+                TO_CHAR(fai.dt_inicial_atendimento, 'HH24:MI') AS hora_inicio,
+                TO_CHAR(fai.dt_final_atendimento, 'HH24:MI') AS hora_fim,
+                COALESCE(CAST(ROUND(EXTRACT(EPOCH FROM (fai.dt_final_atendimento - fai.dt_inicial_atendimento))/60) AS INTEGER), 0) AS duracao_minutos,
+                c.no_cidadao AS paciente
+            FROM tb_fat_atendimento_individual fai
+            JOIN tb_fat_cidadao_pec fcp ON fcp.co_seq_fat_cidadao_pec = fai.co_fat_cidadao_pec
+            JOIN tb_cidadao c ON c.co_seq_cidadao = fcp.co_cidadao
+            WHERE fai.co_dim_profissional_1 = :id_prof
+              AND fai.dt_inicial_atendimento >= CAST(:data_inicio AS timestamp)
+              AND fai.dt_inicial_atendimento < (CAST(:data_inicio AS timestamp) + INTERVAL '1 day')
+            ORDER BY fai.dt_inicial_atendimento ASC;
+        """)
+
+        # Passa o data_obj em vez da string data_iso
+        res = await esus_session.execute(
+            query, {"id_prof": id_profissional, "data_inicio": data_obj}
+        )
+        return [dict(r._mapping) for r in res.all()]

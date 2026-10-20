@@ -171,8 +171,8 @@ class AuditoriaCadastralService:
     async def buscar_detalhes_ficha_domiciliar(
         self, esus_session: AsyncSession, id_ficha: int
     ) -> dict[str, Any] | None:
-        """Busca os dados detalhados de saneamento e moradia de uma ficha domiciliar específica."""
-        query = text("""
+        """Busca os dados detalhados de saneamento e moradia da ficha domiciliar."""
+        query_casa = text("""
             SELECT 
                 fd.co_seq_fat_cad_domiciliar AS id_ficha,
                 COALESCE(ccd.no_logradouro, 'Não Informado') AS rua,
@@ -200,9 +200,56 @@ class AuditoriaCadastralService:
             LEFT JOIN tb_dim_tipo_escoamento_sanitar des ON des.co_seq_dim_tipo_escoamento_snt = fd.co_dim_tipo_escoamento_sanitar
             WHERE fd.co_seq_fat_cad_domiciliar = :id_ficha;
         """)
-        result = await esus_session.execute(query, {"id_ficha": id_ficha})
-        row = result.first()
-        return dict(row._mapping) if row else None
+        row_casa = (
+            await esus_session.execute(query_casa, {"id_ficha": id_ficha})
+        ).first()
+
+        return dict(row_casa._mapping) if row_casa else None
+
+    async def buscar_visitas_domicilio_paginado(
+        self, esus_session: AsyncSession, id_ficha: int, limit: int = 5, offset: int = 0
+    ) -> dict[str, Any]:
+        """Busca o histórico de visitas agrupadas de um domicílio com suporte a paginação."""
+
+        # 1. Conta o total de visitas únicas (agrupadas) para a paginação
+        query_count = text("""
+            WITH VisitasAgrupadas AS (
+                SELECT vd.co_dim_tempo, vd.co_dim_desfecho_visita
+                FROM tb_fat_familia_territorio ft
+                JOIN tb_fat_visita_domiciliar vd ON vd.co_fat_cidadao_pec = ft.co_fat_cidadao_pec
+                WHERE ft.co_fat_cad_domiciliar = :id_ficha
+                GROUP BY vd.co_dim_tempo, vd.co_dim_desfecho_visita
+            )
+            SELECT COUNT(*) FROM VisitasAgrupadas;
+        """)
+        total = (
+            await esus_session.execute(query_count, {"id_ficha": id_ficha})
+        ).scalar() or 0
+
+        # 2. Busca as visitas com LIMIT dinâmico e OFFSET
+        query_visitas = text("""
+            SELECT 
+                t.nu_dia || '/' || t.nu_mes || '/' || t.nu_ano AS data_visita,
+                COALESCE(ddv.ds_desfecho_visita, 'Não Informado') AS desfecho,
+                COALESCE(MAX(vd.nu_medicao_pressao_arterial), '-') AS pressao,
+                COALESCE(MAX(vd.nu_medicao_glicemia), '-') AS glicemia
+            FROM tb_fat_familia_territorio ft
+            JOIN tb_fat_visita_domiciliar vd ON vd.co_fat_cidadao_pec = ft.co_fat_cidadao_pec
+            LEFT JOIN tb_dim_tempo t ON t.co_seq_dim_tempo = vd.co_dim_tempo
+            LEFT JOIN tb_dim_desfecho_visita ddv ON ddv.co_seq_dim_desfecho_visita = vd.co_dim_desfecho_visita
+            WHERE ft.co_fat_cad_domiciliar = :id_ficha
+            GROUP BY vd.co_dim_tempo, t.nu_dia, t.nu_mes, t.nu_ano, ddv.ds_desfecho_visita
+            ORDER BY vd.co_dim_tempo DESC
+            LIMIT :limit OFFSET :offset;
+        """)
+        res_visitas = await esus_session.execute(
+            query_visitas, {"id_ficha": id_ficha, "limit": limit, "offset": offset}
+        )
+
+        return {
+            "total": total,
+            "registros": [dict(v._mapping) for v in res_visitas.all()],
+        }
 
     # ==========================================
     # MÉTODOS DA BANCADA PERICIAL (TELAS DETALHADAS)

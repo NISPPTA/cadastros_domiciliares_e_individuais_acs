@@ -1,6 +1,6 @@
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,8 +54,7 @@ def create_app() -> FastAPI:
         """Redireciona a raiz diretamente para a interface gráfica."""
         # O status 307 garante que o redirecionamento mantenha o método HTTP
         return RedirectResponse(
-            url="/auditoria/",
-            status_code=status.HTTP_307_TEMPORARY_REDIRECT
+            url="/auditoria/", status_code=status.HTTP_307_TEMPORARY_REDIRECT
         )
 
     return _app

@@ -1,7 +1,5 @@
 """Validação de Integridade e Contratos da Bancada Pericial."""
 
-import re
-import pytest
 from bs4 import BeautifulSoup
 
 

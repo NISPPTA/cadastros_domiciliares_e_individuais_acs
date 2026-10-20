@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Informações do Cidadão - {{ cidadao.nome }}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-slate-100 text-slate-900 font-sans min-h-screen p-8">
+        <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+            <!-- Cabeçalho -->
+            <div class="bg-indigo-900 p-8 text-white relative">
+                <div class="absolute top-4 right-4 text-indigo-300 text-xs font-mono">ID Ficha: {{ cidadao.id_ficha }}</div>
+                <h1 class="text-xs uppercase tracking-widest text-indigo-300 font-bold mb-1">Cadastro Individual - e-SUS PEC</h1>
+                <h2 class="text-3xl font-black mb-2">{{ cidadao.nome }}</h2>
+                <div class="flex gap-6 mt-4 text-sm font-medium text-indigo-100">
+                    <p>
+                        📄 Documento: <span class="text-white font-mono">{{ cidadao.documento }}</span>
+                    </p>
+                    <p>
+                        🎂 Nascimento: <span class="text-white font-mono">{{ cidadao.nascimento }}</span>
+                    </p>
+                </div>
+            </div>
+            <!-- Menu de Abas -->
+            <div class="border-b border-slate-200 bg-slate-50 px-8 pt-4 flex gap-2">
+                <button onclick="mudarAbaInfo('aba_informacoes')"
+                        id="btn_tab_informacoes"
+                        class="tab-info-btn py-3 px-5 font-bold text-sm bg-white border-t border-l border-r border-slate-200 text-blue-600 rounded-t-lg -mb-px">
+                    Informações
+                </button>
+                <button onclick="mudarAbaInfo('aba_prontuario')"
+                        id="btn_tab_prontuario"
+                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg">
+                    Prontuário Familiar
+                </button>
+                <button onclick="mudarAbaInfo('aba_unificacoes')"
+                        id="btn_tab_unificacoes"
+                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg">
+                    Unificações
+                </button>
+                <button onclick="mudarAbaInfo('aba_agendamentos')"
+                        id="btn_tab_agendamentos"
+                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg">
+                    Agendamentos
+                </button>
+            </div>
+            <!-- ABA 1: INFORMAÇÕES -->
+            <div id="aba_informacoes" class="tab-info-content block p-8">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-indigo-100 pb-2">👥 Contexto Familiar e Social</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <p class="text-xs text-slate-500 uppercase font-semibold">Responsável Familiar?</p>
+                        <p class="text-lg font-bold {% if cidadao.responsavel_familiar == 'Sim' %}text-indigo-600{% else %}text-slate-700{% endif %}">
+                            {{ cidadao.responsavel_familiar }}
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <p class="text-xs text-slate-500 uppercase font-semibold">Parentesco</p>
+                        <p class="text-lg font-bold text-slate-700">{{ cidadao.parentesco }}</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <p class="text-xs text-slate-500 uppercase font-semibold">Bolsa Família?</p>
+                        <p class="text-lg font-bold {% if cidadao.recebe_bolsa_familia == 'Sim' %}text-emerald-600{% else %}text-slate-700{% endif %}">
+                            {{ cidadao.recebe_bolsa_familia }}
+                        </p>
+                    </div>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-rose-100 pb-2">
+                    ❤️ Condições de Saúde e Doenças Crônicas
+                </h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    {% set condicoes = [
+                        ('Hipertensão', cidadao.hipertenso),
+                        ('Diabetes', cidadao.diabetico),
+                        ('Doença Cardíaca', cidadao.doenca_cardiaca),
+                        ('Teve Infarto', cidadao.teve_infarto),
+                        ('Teve AVC', cidadao.teve_avc),
+                        ('Doença Respiratória', cidadao.doenca_respiratoria),
+                        ('Câncer', cidadao.tem_cancer)
+                    ] %}
+                    {% for nome, valor in condicoes %}
+                        <div class="p-3 rounded-lg border {% if valor == 'Sim' %}bg-rose-50 border-rose-200{% else %}bg-slate-50 border-slate-100{% endif %}">
+                            <p class="text-xs text-slate-500 uppercase font-semibold">{{ nome }}</p>
+                            <p class="text-base font-bold {% if valor == 'Sim' %}text-rose-600{% else %}text-slate-400{% endif %}">{{ valor }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-amber-100 pb-2">⚠️ Hábitos e Condições Especiais</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% set habitos = [
+                        ('Fumante', cidadao.fumante),
+                        ('Uso de Álcool', cidadao.usa_alcool),
+                        ('Gestante', cidadao.gestante),
+                        ('Morador de Rua', cidadao.morador_rua)
+                    ] %}
+                    {% for nome, valor in habitos %}
+                        <div class="p-3 rounded-lg border {% if valor == 'Sim' %}bg-amber-50 border-amber-200{% else %}bg-slate-50 border-slate-100{% endif %}">
+                            <p class="text-xs text-slate-500 uppercase font-semibold">{{ nome }}</p>
+                            <p class="text-base font-bold {% if valor == 'Sim' %}text-amber-700{% else %}text-slate-400{% endif %}">{{ valor }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <!-- ABA 2: PRONTUÁRIO FAMILIAR -->
+            <div id="aba_prontuario" class="tab-info-content hidden p-8">
+                <div class="text-center py-10">
+                    <span class="text-4xl">🏠</span>
+                    <h3 class="text-lg font-bold text-slate-800 mt-4">Condições de Moradia e Domicílio</h3>
+                    <p class="text-slate-500 text-sm mt-2">Dados estruturais vinculados ao cadastro do imóvel familiar.</p>
+                </div>
+            </div>
+            <!-- ABA 3: UNIFICAÇÕES -->
+            <div id="aba_unificacoes" class="tab-info-content hidden p-8">
+                <div class="text-center py-10">
+                    <span class="text-4xl">🔗</span>
+                    <h3 class="text-lg font-bold text-slate-800 mt-4">Histórico de Mesclagem Cadastral</h3>
+                    <p class="text-slate-500 text-sm mt-2">Registros de unificação automatizada de cadastros duplicados.</p>
+                </div>
+            </div>
+            <!-- ABA 4: AGENDAMENTOS -->
+            <div id="aba_agendamentos" class="tab-info-content hidden p-8">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-indigo-100 pb-2">
+                    📅 Histórico de Atendimentos Clínicos na UBS
+                </h3>
+                <div class="overflow-hidden border border-slate-200 rounded-lg">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Data do Atendimento</th>
+                                <th class="p-3">Profissional</th>
+                                <th class="p-3">Especialidade (CBO)</th>
+                                <th class="p-3 text-center">Pressão Medida</th>
+                                <th class="p-3 text-center">Peso (Kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agendamentos_tbody" class="divide-y divide-slate-100 bg-white">
+                            <tr>
+                                <td colspan="5" class="p-6 text-center text-slate-400">Clique para carregar...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="bg-slate-50 p-3 border border-t-0 border-slate-200 flex justify-between items-center text-xs rounded-b-lg">
+                    <span id="agendamentos_info" class="text-slate-500 font-medium">Aguardando...</span>
+                    <div class="flex gap-2">
+                        <button id="btn_agend_prev"
+                                onclick="mudarPaginaAgendamentos(-1)"
+                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">
+                            Anterior
+                        </button>
+                        <button id="btn_agend_next"
+                                onclick="mudarPaginaAgendamentos(1)"
+                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">
+                            Próxima
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Rodapé -->
+            <div class="bg-slate-100 p-4 text-center text-xs text-slate-400 border-t border-slate-200">
+                Bancada Pericial de Inspeção Cadastral e-SUS PEC
+            </div>
+        </div>
+        <script>
+        function mudarAbaInfo(abaId) {
+            document.querySelectorAll('.tab-info-content').forEach(el => {
+                el.classList.remove('block');
+                el.classList.add('hidden');
+            });
+            document.querySelectorAll('.tab-info-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'border-slate-200', 'text-blue-600', '-mb-px');
+                btn.classList.add('border-transparent', 'text-slate-600', 'hover:bg-slate-100');
+            });
+            document.getElementById(abaId).classList.remove('hidden');
+            document.getElementById(abaId).classList.add('block');
+            
+            const btnAtivo = document.getElementById('btn_tab_' + abaId.replace('aba_', ''));
+            if (btnAtivo) {
+                btnAtivo.classList.remove('border-transparent', 'text-slate-600', 'hover:bg-slate-100');
+                btnAtivo.classList.add('bg-white', 'border-slate-200', 'text-blue-600', '-mb-px');
+            }
+        }
+
+        const fichaAtualId = {{ cidadao.id_ficha }};
+        let agendamentosPage = 0;
+        const AGENDAMENTOS_LIMIT = 5;
+        let agendamentosCarregados = false;
+
+        const originalMudarAba = mudarAbaInfo;
+        mudarAbaInfo = function(abaId) {
+            originalMudarAba(abaId);
+            if (abaId === 'aba_agendamentos' && !agendamentosCarregados) {
+                agendamentosCarregados = true;
+                carregarAgendamentos();
+            }
+        };
+
+        async function carregarAgendamentos() {
+            const tbody = document.getElementById('agendamentos_tbody');
+            const offset = agendamentosPage * AGENDAMENTOS_LIMIT;
+            
+            tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 animate-pulse">Buscando histórico na UBS...</td></tr>`;
+            
+            try {
+                const response = await fetch(`/auditoria/api/informacoes/${fichaAtualId}/agendamentos?limit=${AGENDAMENTOS_LIMIT}&offset=${offset}`);
+                const data = await response.json();
+                
+                tbody.innerHTML = '';
+                
+                if (data.total === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="p-6 text-center bg-rose-50 border-t border-rose-200">
+                                <span class="font-bold text-rose-700 text-sm flex items-center justify-center gap-2">
+                                    ⚠️ Paciente nunca foi atendido na Unidade de Saúde!
+                                </span>
+                                <p class="text-xs text-rose-600 mt-1">Nenhum registro de consulta ou procedimento localizado para este munícipe.</p>
+                            </td>
+                        </tr>`;
+                } else {
+                    data.registros.forEach(r => {
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 border-b border-slate-100">
+                                <td class="p-3 font-mono font-bold text-indigo-700">${r.data_atendimento}</td>
+                                <td class="p-3 text-slate-800 font-medium">${r.profissional}</td>
+                                <td class="p-3 text-slate-600 text-[10px] uppercase truncate max-w-[150px]" title="${r.tipo_profissional}">${r.tipo_profissional}</td>
+                                <td class="p-3 text-center font-mono text-slate-600">${r.pressao}</td>
+                                <td class="p-3 text-center font-mono text-slate-600">${r.peso}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                const exibindoAte = Math.min((agendamentosPage + 1) * AGENDAMENTOS_LIMIT, data.total);
+                document.getElementById('agendamentos_info').innerText = data.total === 0 
+                    ? 'Nenhum registro encontrado' 
+                    : `Mostrando ${offset + 1} a ${exibindoAte} de ${data.total} atendimentos`;
+                
+                document.getElementById('btn_agend_prev').disabled = agendamentosPage === 0;
+                document.getElementById('btn_agend_next').disabled = exibindoAte >= data.total;
+
+            } catch (e) {
+                console.error("Erro ao carregar agendamentos", e);
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-rose-500 font-bold">Erro de conexão ao buscar histórico.</td></tr>`;
+            }
+        }
+
+        function mudarPaginaAgendamentos(direcao) {
+            agendamentosPage += direcao;
+            carregarAgendamentos();
+        }
+        </script>
+    </body>
+</html>

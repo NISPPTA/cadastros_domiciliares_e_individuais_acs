@@ -7,7 +7,7 @@
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-slate-100 text-slate-900 font-sans min-h-screen p-8">
-        <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 relative">
             <!-- Cabeçalho -->
             <div class="bg-indigo-900 p-8 text-white relative">
                 <div class="absolute top-4 right-4 text-indigo-300 text-xs font-mono">ID Ficha: {{ cidadao.id_ficha }}</div>
@@ -26,22 +26,22 @@
             <div class="border-b border-slate-200 bg-slate-50 px-8 pt-4 flex gap-2">
                 <button onclick="mudarAbaInfo('aba_informacoes')"
                         id="btn_tab_informacoes"
-                        class="tab-info-btn py-3 px-5 font-bold text-sm bg-white border-t border-l border-r border-slate-200 text-blue-600 rounded-t-lg -mb-px">
+                        class="tab-info-btn py-3 px-5 font-bold text-sm bg-white border-t border-l border-r border-slate-200 text-blue-600 rounded-t-lg -mb-px focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Informações
                 </button>
                 <button onclick="mudarAbaInfo('aba_prontuario')"
                         id="btn_tab_prontuario"
-                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg">
+                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Prontuário Familiar
                 </button>
                 <button onclick="mudarAbaInfo('aba_unificacoes')"
                         id="btn_tab_unificacoes"
-                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg">
+                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Unificações
                 </button>
                 <button onclick="mudarAbaInfo('aba_agendamentos')"
                         id="btn_tab_agendamentos"
-                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg">
+                        class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Agendamentos
                 </button>
             </div>
@@ -144,14 +144,16 @@
                 <div class="bg-slate-50 p-3 border border-t-0 border-slate-200 flex justify-between items-center text-xs rounded-b-lg">
                     <span id="agendamentos_info" class="text-slate-500 font-medium">Aguardando...</span>
                     <div class="flex gap-2">
-                        <button id="btn_agend_prev"
+                        <button type="button"
+                                id="btn_agend_prev"
                                 onclick="mudarPaginaAgendamentos(-1)"
-                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">
+                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             Anterior
                         </button>
-                        <button id="btn_agend_next"
+                        <button type="button"
+                                id="btn_agend_next"
                                 onclick="mudarPaginaAgendamentos(1)"
-                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50">
+                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             Próxima
                         </button>
                     </div>
@@ -162,7 +164,113 @@
                 Bancada Pericial de Inspeção Cadastral e-SUS PEC
             </div>
         </div>
+        <!-- MODAIS DE AUDITORIA (Sobrepostos) -->
+        <!-- MODAL 1: DETALHES DO ATENDIMENTO -->
+        <div id="modal_atend"
+             role="dialog"
+             aria-modal="true"
+             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transform transition-all">
+                <div class="bg-indigo-900 p-4 flex justify-between items-center text-white">
+                    <h2 class="font-bold">Detalhes Clínicos do Atendimento</h2>
+                    <button type="button"
+                            onclick="fecharModal('modal_atend')"
+                            class="text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-white rounded p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4 text-sm" id="conteudo_atend">
+                    <p class="text-center text-slate-500 animate-pulse">Carregando dados...</p>
+                </div>
+            </div>
+        </div>
+        <!-- MODAL 2: AGENDA DO PROFISSIONAL -->
+        <div id="modal_agenda"
+             role="dialog"
+             aria-modal="true"
+             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all">
+                <div class="bg-slate-800 p-4 flex justify-between items-center text-white">
+                    <h2 class="font-bold">Auditoria de Produção Diária (Volume e Consistência)</h2>
+                    <button type="button"
+                            onclick="fecharModal('modal_agenda')"
+                            class="text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-white rounded p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-4 bg-slate-50 border-b border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase font-semibold">Profissional / Dia</p>
+                    <p class="font-bold text-slate-800 text-lg" id="titulo_agenda">...</p>
+                </div>
+                <!-- CARDS DE RESUMO DA PRODUÇÃO (Iniciam ocultos) -->
+                <div id="resumo_agenda_cards"
+                     class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-white border-b border-slate-200 hidden">
+                    <div class="bg-blue-50 border border-blue-100 p-3 rounded-lg shadow-sm">
+                        <p class="text-[10px] text-blue-600 font-bold uppercase tracking-wide">Total Pacientes</p>
+                        <p class="text-xl font-black text-blue-900 mt-1"
+                           id="card_ag_total_pacientes">0</p>
+                    </div>
+                    <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-lg shadow-sm">
+                        <p class="text-[10px] text-indigo-600 font-bold uppercase tracking-wide">Tempo Total</p>
+                        <p class="text-xl font-black text-indigo-900 mt-1"
+                           id="card_ag_tempo_total">0 min</p>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-3 rounded-lg shadow-sm">
+                        <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wide">Primeiro Atend.</p>
+                        <p class="text-xl font-black text-emerald-900 mt-1" id="card_ag_inicio">--:--</p>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-100 p-3 rounded-lg shadow-sm">
+                        <p class="text-[10px] text-rose-600 font-bold uppercase tracking-wide">Último Atend.</p>
+                        <p class="text-xl font-black text-rose-900 mt-1" id="card_ag_fim">--:--</p>
+                    </div>
+                </div>
+                <div class="p-0 overflow-y-auto" id="conteudo_agenda">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold sticky top-0 border-b border-slate-200 shadow-sm">
+                            <tr>
+                                <th class="p-3 pl-4">Horário</th>
+                                <th class="p-3 text-center">Duração</th>
+                                <th class="p-3">Paciente Atendido</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_agenda" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         <script>
+        // ---------------------------------------------------------------------
+        // UTILITÁRIOS DOM SEGUROS (PREVENÇÃO DE XSS)
+        // ---------------------------------------------------------------------
+        function el(tag, className, textContent) {
+            const element = document.createElement(tag);
+            if (className) element.className = className;
+            if (textContent !== undefined && textContent !== null) element.textContent = String(textContent);
+            return element;
+        }
+
+        function formatarTextoSeguro(valor, padrao = '-') {
+            if (valor === null || valor === undefined) return padrao;
+            const str = String(valor).trim();
+            return str.length > 0 ? str : padrao;
+        }
+
+        // ---------------------------------------------------------------------
+        // GESTÃO DE ABAS
+        // ---------------------------------------------------------------------
         function mudarAbaInfo(abaId) {
             document.querySelectorAll('.tab-info-content').forEach(el => {
                 el.classList.remove('block');
@@ -182,10 +290,14 @@
             }
         }
 
+        // ---------------------------------------------------------------------
+        // PAGINAÇÃO E CARREGAMENTO DE AGENDAMENTOS
+        // ---------------------------------------------------------------------
         const fichaAtualId = {{ cidadao.id_ficha }};
         let agendamentosPage = 0;
         const AGENDAMENTOS_LIMIT = 5;
         let agendamentosCarregados = false;
+        let abortControllerAgendamentos = null;
 
         const originalMudarAba = mudarAbaInfo;
         mudarAbaInfo = function(abaId) {
@@ -200,35 +312,73 @@
             const tbody = document.getElementById('agendamentos_tbody');
             const offset = agendamentosPage * AGENDAMENTOS_LIMIT;
             
-            tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 animate-pulse">Buscando histórico na UBS...</td></tr>`;
+            tbody.innerHTML = '';
+            const trCarregando = el('tr');
+            const tdCarregando = el('td', 'p-6 text-center text-slate-400 font-medium animate-pulse', 'Buscando histórico na UBS...');
+            tdCarregando.colSpan = 5;
+            trCarregando.appendChild(tdCarregando);
+            tbody.appendChild(trCarregando);
+
+            if (abortControllerAgendamentos) abortControllerAgendamentos.abort();
+            abortControllerAgendamentos = new AbortController();
             
             try {
-                const response = await fetch(`/auditoria/api/informacoes/${fichaAtualId}/agendamentos?limit=${AGENDAMENTOS_LIMIT}&offset=${offset}`);
+                const response = await fetch(`/auditoria/api/informacoes/${fichaAtualId}/agendamentos?limit=${AGENDAMENTOS_LIMIT}&offset=${offset}`, {
+                    signal: abortControllerAgendamentos.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (!response.ok) throw new Error('Falha na requisição');
                 const data = await response.json();
                 
                 tbody.innerHTML = '';
                 
                 if (data.total === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="p-6 text-center bg-rose-50 border-t border-rose-200">
-                                <span class="font-bold text-rose-700 text-sm flex items-center justify-center gap-2">
-                                    ⚠️ Paciente nunca foi atendido na Unidade de Saúde!
-                                </span>
-                                <p class="text-xs text-rose-600 mt-1">Nenhum registro de consulta ou procedimento localizado para este munícipe.</p>
-                            </td>
-                        </tr>`;
+                    const trAviso = el('tr');
+                    const tdAviso = el('td', 'p-6 text-center bg-rose-50 border-t border-rose-200');
+                    tdAviso.colSpan = 5;
+                    
+                    const pTitulo = el('p', 'font-bold text-rose-700 text-sm flex items-center justify-center gap-2', '⚠️ Paciente nunca foi atendido na Unidade de Saúde!');
+                    const pDesc = el('p', 'text-xs text-rose-600 mt-1', 'Nenhum registro de consulta ou procedimento localizado para este munícipe.');
+                    
+                    tdAviso.appendChild(pTitulo);
+                    tdAviso.appendChild(pDesc);
+                    trAviso.appendChild(tdAviso);
+                    tbody.appendChild(trAviso);
                 } else {
                     data.registros.forEach(r => {
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-slate-50 border-b border-slate-100">
-                                <td class="p-3 font-mono font-bold text-indigo-700">${r.data_atendimento}</td>
-                                <td class="p-3 text-slate-800 font-medium">${r.profissional}</td>
-                                <td class="p-3 text-slate-600 text-[10px] uppercase truncate max-w-[150px]" title="${r.tipo_profissional}">${r.tipo_profissional}</td>
-                                <td class="p-3 text-center font-mono text-slate-600">${r.pressao}</td>
-                                <td class="p-3 text-center font-mono text-slate-600">${r.peso}</td>
-                            </tr>
-                        `;
+                        const tr = el('tr', 'hover:bg-slate-50 border-b border-slate-100 transition-colors');
+                        
+                        // 1. Coluna Data (Abre Modal do Atendimento)
+                        const tdData = el('td', 'p-3 font-mono font-bold');
+                        if (r.id_atendimento) {
+                            const btnData = el('button', 'text-indigo-700 hover:text-indigo-900 hover:underline focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1', formatarTextoSeguro(r.data_atendimento));
+                            btnData.onclick = () => abrirModalAtendimento(r.id_atendimento);
+                            btnData.title = 'Ver detalhes clínicos da consulta';
+                            tdData.appendChild(btnData);
+                        } else {
+                            tdData.textContent = formatarTextoSeguro(r.data_atendimento);
+                        }
+                        tr.appendChild(tdData);
+
+                        // 2. Coluna Profissional (Abre Modal da Agenda)
+                        const tdProf = el('td', 'p-3 font-medium');
+                        if (r.id_profissional && r.data_iso) {
+                            const btnProf = el('button', 'text-blue-700 hover:text-blue-900 hover:underline focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 text-left', formatarTextoSeguro(r.profissional));
+                            btnProf.onclick = () => abrirModalAgenda(r.id_profissional, r.data_iso, r.profissional);
+                            btnProf.title = 'Auditar agenda do profissional neste dia';
+                            tdProf.appendChild(btnProf);
+                        } else {
+                            tdProf.textContent = formatarTextoSeguro(r.profissional);
+                        }
+                        tr.appendChild(tdProf);
+
+                        // Demais colunas
+                        tr.appendChild(el('td', 'p-3 text-slate-600 text-[10px] uppercase truncate max-w-[150px]', formatarTextoSeguro(r.tipo_profissional)));
+                        tr.appendChild(el('td', 'p-3 text-center font-mono text-slate-600', formatarTextoSeguro(r.pressao)));
+                        tr.appendChild(el('td', 'p-3 text-center font-mono text-slate-600', formatarTextoSeguro(r.peso)));
+
+                        tbody.appendChild(tr);
                     });
                 }
 
@@ -241,14 +391,165 @@
                 document.getElementById('btn_agend_next').disabled = exibindoAte >= data.total;
 
             } catch (e) {
-                console.error("Erro ao carregar agendamentos", e);
-                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-rose-500 font-bold">Erro de conexão ao buscar histórico.</td></tr>`;
+                if (e.name === 'AbortError') return;
+                tbody.innerHTML = '';
+                const trErr = el('tr');
+                const tdErr = el('td', 'p-6 text-center text-rose-500 font-bold', 'Erro de conexão ao buscar histórico.');
+                tdErr.colSpan = 5;
+                trErr.appendChild(tdErr);
+                tbody.appendChild(trErr);
             }
         }
 
         function mudarPaginaAgendamentos(direcao) {
             agendamentosPage += direcao;
             carregarAgendamentos();
+        }
+
+        // ---------------------------------------------------------------------
+        // CONTROLE DOS MODAIS (DETALHES E AGENDA)
+        // ---------------------------------------------------------------------
+        let abortControllerModalAtend = null;
+        let abortControllerModalAgenda = null;
+
+        function fecharModal(id) { 
+            document.getElementById(id).classList.add('hidden'); 
+        }
+
+        // Fecha ao clicar fora ou apertar ESC
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'modal_atend') fecharModal('modal_atend');
+            if (e.target.id === 'modal_agenda') fecharModal('modal_agenda');
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                fecharModal('modal_atend');
+                fecharModal('modal_agenda');
+            }
+        });
+
+        async function abrirModalAtendimento(idAtend) {
+            const modal = document.getElementById('modal_atend');
+            const conteudo = document.getElementById('conteudo_atend');
+            modal.classList.remove('hidden');
+            
+            conteudo.innerHTML = '';
+            conteudo.appendChild(el('p', 'text-center text-slate-500 font-medium animate-pulse', 'Carregando dados da consulta...'));
+            
+            if (abortControllerModalAtend) abortControllerModalAtend.abort();
+            abortControllerModalAtend = new AbortController();
+            
+            try {
+                const resp = await fetch(`/auditoria/api/atendimentos/${idAtend}/detalhes`, {
+                    signal: abortControllerModalAtend.signal
+                });
+                if (!resp.ok) throw new Error();
+                const d = await resp.json();
+                
+                conteudo.innerHTML = `
+                    <div class="flex justify-between border-b border-slate-100 pb-2"><span class="font-semibold text-slate-600">Início:</span> <span class="font-mono text-slate-800">${formatarTextoSeguro(d.inicio)}</span></div>
+                    <div class="flex justify-between border-b border-slate-100 pb-2"><span class="font-semibold text-slate-600">Fim:</span> <span class="font-mono text-slate-800">${formatarTextoSeguro(d.fim)}</span></div>
+                    <div class="flex justify-between border-b border-slate-100 pb-2"><span class="font-semibold text-slate-600">Duração:</span> <span class="font-bold ${d.duracao_minutos < 2 ? 'text-rose-600' : 'text-emerald-600'}">${formatarTextoSeguro(d.duracao_minutos, '0')} min</span></div>
+                    <div class="flex flex-col border-b border-slate-100 pb-2 mt-2"><span class="font-semibold text-slate-600 mb-1">Motivo (CIAP2):</span> <span class="text-slate-800 text-xs bg-slate-50 border border-slate-100 p-2 rounded">${formatarTextoSeguro(d.ciaps)}</span></div>
+                    <div class="flex flex-col border-b border-slate-100 pb-2 mt-2"><span class="font-semibold text-slate-600 mb-1">Diagnóstico (CID10):</span> <span class="text-slate-800 text-xs bg-slate-50 border border-slate-100 p-2 rounded">${formatarTextoSeguro(d.cids)}</span></div>
+                    <div class="flex justify-between pt-2"><span class="font-semibold text-slate-600">Ficou em Observação?</span> <span class="font-bold text-slate-800">${formatarTextoSeguro(d.observacao)}</span></div>
+                `;
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                conteudo.innerHTML = '';
+                conteudo.appendChild(el('p', 'text-center text-rose-600 font-semibold', 'Falha ao buscar dados do atendimento.'));
+            }
+        }
+
+        async function abrirModalAgenda(idProf, dataIso, nomeProf) {
+            const modal = document.getElementById('modal_agenda');
+            const tbody = document.getElementById('tbody_agenda');
+            const cardsContainer = document.getElementById('resumo_agenda_cards');
+            
+            modal.classList.remove('hidden');
+            cardsContainer.classList.add('hidden'); // Oculta até carregar
+            
+            const dataFormatada = dataIso ? dataIso.split('-').reverse().join('/') : '-';
+            document.getElementById('titulo_agenda').textContent = `${formatarTextoSeguro(nomeProf)} - ${dataFormatada}`;
+            
+            tbody.innerHTML = '';
+            const trLoad = el('tr');
+            const tdLoad = el('td', 'p-6 text-center text-slate-500 font-medium animate-pulse', 'Auditando agenda do dia...');
+            tdLoad.colSpan = 3;
+            trLoad.appendChild(tdLoad);
+            tbody.appendChild(trLoad);
+            
+            if (abortControllerModalAgenda) abortControllerModalAgenda.abort();
+            abortControllerModalAgenda = new AbortController();
+            
+            try {
+                const url = new URL(`/auditoria/api/profissionais/${idProf}/producao`, window.location.origin);
+                url.searchParams.set('data', dataIso);
+
+                const resp = await fetch(url.toString(), {
+                    signal: abortControllerModalAgenda.signal
+                });
+                if (!resp.ok) throw new Error();
+                const dados = await resp.json();
+                
+                tbody.innerHTML = '';
+                
+                if (dados.length === 0) {
+                    const tr = el('tr');
+                    const td = el('td', 'p-6 text-center text-slate-500', 'Nenhum atendimento retornado para este dia.');
+                    td.colSpan = 3;
+                    tr.appendChild(td);
+                    tbody.appendChild(tr);
+                    return;
+                }
+
+                // --- CÁLCULO DOS CARDS DE RESUMO ---
+                const totalPacientes = dados.length;
+                const tempoTotalMinutos = dados.reduce((acc, curr) => acc + (parseInt(curr.duracao_minutos, 10) || 0), 0);
+                
+                // Conversão inteligente de minutos para horas
+                let tempoFormatado = `${tempoTotalMinutos} min`;
+                if (tempoTotalMinutos >= 60) {
+                    const horas = Math.floor(tempoTotalMinutos / 60);
+                    const minutos = tempoTotalMinutos % 60;
+                    tempoFormatado = minutos > 0 ? `${horas}h ${minutos}m` : `${horas}h`;
+                }
+
+                const primeiroAtend = formatarTextoSeguro(dados[0].hora_inicio, '--:--');
+                const ultimoAtend = formatarTextoSeguro(dados[dados.length - 1].hora_fim, '--:--');
+
+                document.getElementById('card_ag_total_pacientes').textContent = totalPacientes;
+                document.getElementById('card_ag_tempo_total').textContent = tempoFormatado;
+                document.getElementById('card_ag_inicio').textContent = primeiroAtend;
+                document.getElementById('card_ag_fim').textContent = ultimoAtend;
+                
+                cardsContainer.classList.remove('hidden'); // Exibe os cards preenchidos
+                // -----------------------------------
+
+                dados.forEach(a => {
+                    const tr = el('tr', 'hover:bg-slate-50 border-b border-slate-100 transition-colors');
+                    tr.appendChild(el('td', 'p-3 pl-4 font-mono font-bold text-slate-700', `${formatarTextoSeguro(a.hora_inicio)} - ${formatarTextoSeguro(a.hora_fim)}`));
+                    
+                    const tdDuracao = el('td', 'p-3 text-center');
+                    const alertaDuracao = a.duracao_minutos < 3 ? 'bg-rose-100 text-rose-800 font-bold' : 'bg-slate-100 text-slate-700 font-medium';
+                    tdDuracao.appendChild(el('span', `px-2 py-0.5 rounded text-[11px] ${alertaDuracao}`, `${formatarTextoSeguro(a.duracao_minutos, '0')}m`));
+                    tr.appendChild(tdDuracao);
+                    
+                    const tdPac = el('td', 'p-3 text-slate-800 font-medium truncate max-w-[250px]', formatarTextoSeguro(a.paciente));
+                    tdPac.title = formatarTextoSeguro(a.paciente);
+                    tr.appendChild(tdPac);
+                    
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                tbody.innerHTML = '';
+                const tr = el('tr');
+                const td = el('td', 'p-6 text-center text-rose-600 font-semibold', 'Erro ao carregar a agenda.');
+                td.colSpan = 3;
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            }
         }
         </script>
     </body>

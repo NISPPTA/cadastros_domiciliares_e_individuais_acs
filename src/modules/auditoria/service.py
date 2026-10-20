@@ -404,6 +404,7 @@ class AuditoriaCadastralService:
                 cpf,
                 COUNT(id_ficha) AS total_cadastros_gerados,
                 STRING_AGG(id_ficha::text, ', ' ORDER BY id_ficha DESC) AS ids_fichas,
+                MAX(id_ficha) AS id_ficha,
                 telefone_usado,
                 CASE 
                     WHEN cns = cns_acs OR nome_acs ILIKE nome THEN true 
@@ -611,3 +612,84 @@ class AuditoriaCadastralService:
         if taxa_eficiencia >= 50.0:
             return "Inconsistente / Alinhamento Técnico"
         return "Crítica / Notificação Formal e Recadastramento"
+
+    async def buscar_informacoes_cidadao(
+        self, esus_session: AsyncSession, id_ficha: int
+    ) -> dict[str, Any] | None:
+        """Busca os dados clínicos e sociodemográficos completos de uma ficha individual."""
+        query = text("""
+            SELECT 
+                fi.co_seq_fat_cad_individual AS id_ficha,
+                c.no_cidadao AS nome,
+                COALESCE(c.nu_cpf, c.nu_cns, 'Sem Documento') AS documento,
+                TO_CHAR(c.dt_nascimento, 'DD/MM/YYYY') AS nascimento,
+                
+                -- Dados Familiares
+                CASE WHEN fi.st_responsavel_familiar = 1 THEN 'Sim' ELSE 'Não' END AS responsavel_familiar,
+                COALESCE(fi.no_visita_familiar_parentesco, 'Responsável / Não Informado') AS parentesco,
+                CASE WHEN fi.st_beneficio_bolsa_familia = 1 THEN 'Sim' ELSE 'Não' END AS recebe_bolsa_familia,
+                
+                -- Condições de Saúde (Doenças Crônicas)
+                CASE WHEN fi.st_hipertensao_arterial = 1 THEN 'Sim' ELSE 'Não' END AS hipertenso,
+                CASE WHEN fi.st_diabete = 1 THEN 'Sim' ELSE 'Não' END AS diabetico,
+                CASE WHEN fi.st_doenca_cardiaca = 1 THEN 'Sim' ELSE 'Não' END AS doenca_cardiaca,
+                CASE WHEN fi.st_infarto = 1 THEN 'Sim' ELSE 'Não' END AS teve_infarto,
+                CASE WHEN fi.st_avc = 1 THEN 'Sim' ELSE 'Não' END AS teve_avc,
+                CASE WHEN fi.st_doenca_respiratoria = 1 THEN 'Sim' ELSE 'Não' END AS doenca_respiratoria,
+                CASE WHEN fi.st_cancer = 1 THEN 'Sim' ELSE 'Não' END AS tem_cancer,
+                
+                -- Hábitos e Situações
+                CASE WHEN fi.st_fumante = 1 THEN 'Sim' ELSE 'Não' END AS fumante,
+                CASE WHEN fi.st_alcool = 1 THEN 'Sim' ELSE 'Não' END AS usa_alcool,
+                CASE WHEN fi.st_gestante = 1 THEN 'Sim' ELSE 'Não' END AS gestante,
+                CASE WHEN fi.st_morador_rua = 1 THEN 'Sim' ELSE 'Não' END AS morador_rua
+            FROM tb_fat_cad_individual fi
+            JOIN tb_fat_cidadao_pec fcp ON fcp.co_seq_fat_cidadao_pec = fi.co_fat_cidadao_pec
+            JOIN tb_cidadao c ON c.co_seq_cidadao = fcp.co_cidadao
+            WHERE fi.co_seq_fat_cad_individual = :id_ficha;
+        """)
+        row = (await esus_session.execute(query, {"id_ficha": id_ficha})).first()
+        return dict(row._mapping) if row else None
+
+    async def buscar_agendamentos_cidadao_paginado(
+        self, esus_session: AsyncSession, id_ficha: int, limit: int = 5, offset: int = 0
+    ) -> dict[str, Any]:
+        """Busca o histórico de atendimentos clínicos reais de um munícipe na UBS."""
+        query_count = text("""
+            SELECT COUNT(fai.co_seq_fat_atd_ind)
+            FROM tb_fat_cad_individual fi
+            JOIN tb_fat_cidadao_pec fcp ON fcp.co_seq_fat_cidadao_pec = fi.co_fat_cidadao_pec
+            JOIN tb_fat_atendimento_individual fai ON fai.co_fat_cidadao_pec = fcp.co_seq_fat_cidadao_pec
+            WHERE fi.co_seq_fat_cad_individual = :id_ficha;
+        """)
+        total = (
+            await esus_session.execute(query_count, {"id_ficha": id_ficha})
+        ).scalar() or 0
+
+        query_atend = text("""
+            SELECT 
+                TO_CHAR(fai.dt_inicial_atendimento, 'DD/MM/YYYY HH24:MI') AS data_atendimento,
+                COALESCE(dp.no_profissional, 'Não Informado') AS profissional,
+                COALESCE(cbo.no_cbo, 'CBO Não Informado') AS tipo_profissional,
+                CASE 
+                    WHEN fai.nu_pressao_sistolica IS NOT NULL THEN fai.nu_pressao_sistolica || '/' || fai.nu_pressao_diastolica
+                    ELSE '-'
+                END AS pressao,
+                COALESCE(CAST(fai.nu_peso AS VARCHAR), '-') AS peso
+            FROM tb_fat_cad_individual fi
+            JOIN tb_fat_cidadao_pec fcp ON fcp.co_seq_fat_cidadao_pec = fi.co_fat_cidadao_pec
+            JOIN tb_fat_atendimento_individual fai ON fai.co_fat_cidadao_pec = fcp.co_seq_fat_cidadao_pec
+            LEFT JOIN tb_dim_profissional dp ON dp.co_seq_dim_profissional = fai.co_dim_profissional_1
+            LEFT JOIN tb_dim_cbo cbo ON cbo.co_seq_dim_cbo = fai.co_dim_cbo_1
+            WHERE fi.co_seq_fat_cad_individual = :id_ficha
+            ORDER BY fai.dt_inicial_atendimento DESC
+            LIMIT :limit OFFSET :offset;
+        """)
+        res_atend = await esus_session.execute(
+            query_atend, {"id_ficha": id_ficha, "limit": limit, "offset": offset}
+        )
+
+        return {
+            "total": total,
+            "registros": [dict(v._mapping) for v in res_atend.all()],
+        }

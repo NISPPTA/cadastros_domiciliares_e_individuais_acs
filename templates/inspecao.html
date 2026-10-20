@@ -56,6 +56,9 @@
                 <span>👤 Munícipes & Dados Clínicos</span>
                 <span id="badge_individuos" class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full animate-pulse">...</span>
             </button>
+            <button onclick="mudarAba('aba_busca_reversa')" id="btn_aba_busca_reversa" class="tab-btn py-2 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                <span>📍 Busca Reversa Territorial</span>
+            </button>
         </div>
 
         <!-- ABA 1: DUPLICIDADES -->
@@ -198,11 +201,130 @@
                 </div>
             </div>
         </div>
+
+        <!-- ABA 4: BUSCA REVERSA TERRITORIAL -->
+        <div id="aba_busca_reversa" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-5 bg-slate-50 border-b border-slate-200">
+                    <h3 class="text-sm font-bold text-slate-800">Mapeamento Territorial (Qual ACS atende este endereço?)</h3>
+                    <p class="text-xs text-slate-500 mb-4">Pesquise por uma rua para descobrir qual Agente de Saúde tem fichas vinculadas nela.</p>
+                    
+                    <!-- Formulário de Busca -->
+                    <div class="flex flex-wrap gap-3 items-end">
+                        <div class="flex-1 min-w-[200px] relative">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Nome da Rua/Logradouro</label>
+                            <input type="text" id="input_rua" autocomplete="off" placeholder="Ex: Machado, Sete de Setembro..." class="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                            <ul id="lista_ruas" class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden z-50 divide-y divide-slate-100"></ul>
+                        </div>
+                        <div class="w-32">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Número (Opcional)</label>
+                            <input type="text" id="input_numero" placeholder="Ex: 705" class="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                        </div>
+                        <button onclick="executarBuscaReversa()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors shadow-sm">
+                            Pesquisar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto relative min-h-[200px] p-4">
+                    <div id="loading_busca" class="absolute inset-0 bg-white/80 flex justify-center items-center z-10 hidden">
+                        <span class="text-sm font-bold text-blue-600">Rastreando endereço...</span>
+                    </div>
+
+                    <!-- Div para o Resumo dos Agentes -->
+                    <div id="resumo_agentes_busca" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                    </div>
+
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Agente Responsável</th>
+                                <th class="p-3">Microárea</th>
+                                <th class="p-3">Endereço Registrado</th>
+                                <th class="p-3">Bairro</th>
+                                <th class="p-3 text-center">Data do Cadastro</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_busca_reversa" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="p-8 text-center text-slate-400">Digite um endereço acima para rastrear o agente responsável.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         {% else %}
         <div class="text-center py-20 bg-white border border-dashed border-slate-300 rounded-2xl">
             <p class="text-slate-400 text-base">Acesse esta página a partir do painel de auditoria selecionando um agente.</p>
         </div>
         {% endif %}
+
+    <!-- MODAL PRONTUÁRIO DOMICILIAR -->
+        <div id="modal_ficha" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                
+                <!-- Cabeçalho do Modal -->
+                <div class="bg-slate-800 p-5 flex justify-between items-center">
+                    <h2 class="text-white font-bold text-lg flex items-center gap-2">
+                        <span>🏠 Prontuário Domiciliar e Saneamento</span>
+                    </h2>
+                    <button onclick="fecharModalFicha()" class="text-slate-300 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Corpo do Modal -->
+                <div class="p-6 overflow-y-auto relative min-h-[200px]">
+                    <div id="modal_loading" class="absolute inset-0 bg-white flex justify-center items-center z-10 hidden">
+                        <span class="text-sm font-bold text-blue-600 animate-pulse">Buscando dados no e-SUS PEC...</span>
+                    </div>
+
+                    <div id="modal_conteudo" class="hidden">
+                        <div class="mb-6 border-b border-slate-200 pb-4">
+                            <p class="text-xs text-slate-500 uppercase font-semibold">Endereço Registrado na Ficha</p>
+                            <p id="m_endereco" class="text-lg font-bold text-slate-800 mt-1">...</p>
+                            <p class="text-xs text-slate-500 mt-1">Data do Cadastro: <span id="m_data" class="font-bold text-slate-700">...</span></p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <p class="text-xs text-slate-500 uppercase">Qtd. Cômodos</p>
+                                <p id="m_comodos" class="text-lg font-bold text-slate-800">...</p>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <p class="text-xs text-slate-500 uppercase">Qtd. Moradores</p>
+                                <p id="m_moradores" class="text-lg font-bold text-slate-800">...</p>
+                            </div>
+                        </div>
+
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-blue-600 pl-2">Saneamento e Moradia</h3>
+                        <ul class="space-y-3 text-sm">
+                            <li class="flex justify-between items-start border-b border-slate-100 pb-2">
+                                <span class="text-slate-500 w-1/3">Abastecimento de Água</span>
+                                <span id="m_agua" class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                            </li>
+                            <li class="flex justify-between items-start border-b border-slate-100 pb-2">
+                                <span class="text-slate-500 w-1/3">Tratamento de Água</span>
+                                <span id="m_tratamento" class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                            </li>
+                            <li class="flex justify-between items-start border-b border-slate-100 pb-2">
+                                <span class="text-slate-500 w-1/3">Escoamento (Banheiro)</span>
+                                <span id="m_esgoto" class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                            </li>
+                            <li class="flex justify-between items-start border-b border-slate-100 pb-2">
+                                <span class="text-slate-500 w-1/3">Destino do Lixo</span>
+                                <span id="m_lixo" class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                            </li>
+                            <li class="flex justify-between items-start pt-1">
+                                <span class="text-slate-500 w-1/3">Animais no Domicílio</span>
+                                <span id="m_animais" class="font-semibold text-slate-800 text-right w-2/3">...</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -341,6 +463,177 @@
             carregarTabela('dup');
             carregarTabela('dom');
             carregarTabela('ind');
+        }
+
+        // -----------------------------------------
+        // Busca Reversa
+        // -----------------------------------------
+        async function executarBuscaReversa() {
+            const rua = document.getElementById('input_rua').value.trim();
+            const numero = document.getElementById('input_numero').value.trim();
+            const tbody = document.getElementById('tbody_busca_reversa');
+            const divResumo = document.getElementById('resumo_agentes_busca');
+
+            if (rua.length < 3) {
+                alert("Digite pelo menos 3 letras do nome da rua.");
+                return;
+            }
+
+            document.getElementById('loading_busca').classList.remove('hidden');
+            divResumo.classList.add('hidden');
+
+            try {
+                let url = `/auditoria/api/busca-endereco?rua=${encodeURIComponent(rua)}`;
+                if (numero) url += `&numero=${encodeURIComponent(numero)}`;
+
+                const response = await fetch(url);
+                const dados = await response.json();
+
+                tbody.innerHTML = '';
+
+                if (dados.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhum agente localizado para este endereço.</td></tr>`;
+                } else {
+                    // Mapeia Agentes e Microáreas Únicas para o Resumo
+                    const agentesUnicos = {};
+                    dados.forEach(r => {
+                        agentesUnicos[r.agente_responsavel] = r.microarea;
+                    });
+                    
+                    const qtdAgentes = Object.keys(agentesUnicos).length;
+                    const nomesFormatados = Object.entries(agentesUnicos).map(([nome, ma]) => `<b>${nome}</b> (MA ${ma})`).join(", ");
+                    
+                    divResumo.innerHTML = `📍 Foram encontrados ${qtdAgentes} agente(s) responsável(is) por este território: ${nomesFormatados}.`;
+                    divResumo.classList.remove('hidden');
+
+                    dados.forEach(r => {
+                        const enderecoFormatado = `${r.rua}, ${r.numero ? r.numero : 'S/N'}`;
+                        const row = `
+                            <tr class="hover:bg-slate-50 border-b border-slate-100">
+                                <td class="p-3">
+                                    <a href="/auditoria/inspecao/?agente_id=${r.id_agente}" class="font-bold text-blue-700 hover:underline" title="Inspecionar este agente">
+                                        ${r.agente_responsavel}
+                                    </a>
+                                </td>
+                                <td class="p-3 font-mono font-bold text-slate-600">MA ${r.microarea}</td>
+                                <td class="p-3 font-medium">
+                                    <a href="#" onclick="abrirFichaDomiciliar(${r.id_ficha}); return false;" class="text-emerald-700 hover:underline hover:text-emerald-900" title="Ver Prontuário Domiciliar">
+                                        ${enderecoFormatado}
+                                    </a>
+                                </td>
+                                <td class="p-3 text-slate-600">${r.bairro}</td>
+                                <td class="p-3 text-center font-mono text-slate-500">${r.data_cadastro}</td>
+                            </tr>
+                        `;
+                        tbody.insertAdjacentHTML('beforeend', row);
+                    });
+                }
+            } catch (error) {
+                console.error("Erro na busca reversa:", error);
+                alert("Erro ao pesquisar o endereço.");
+            } finally {
+                document.getElementById('loading_busca').classList.add('hidden');
+            }
+        }
+
+        // -----------------------------------------
+        // Modal Prontuário Domiciliar
+        // -----------------------------------------
+        async function abrirFichaDomiciliar(id_ficha) {
+            const modal = document.getElementById('modal_ficha');
+            const conteudo = document.getElementById('modal_conteudo');
+            const loading = document.getElementById('modal_loading');
+            
+            modal.classList.remove('hidden');
+            conteudo.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/auditoria/api/ficha-domiciliar/${id_ficha}`);
+                if (!response.ok) throw new Error("Ficha não encontrada");
+                
+                const dados = await response.json();
+                
+                document.getElementById('m_endereco').innerText = `${dados.rua}, ${dados.numero} - ${dados.bairro}`;
+                document.getElementById('m_data').innerText = dados.data_cadastro;
+                document.getElementById('m_comodos').innerText = dados.qtd_comodos;
+                document.getElementById('m_moradores').innerText = dados.qtd_moradores;
+                document.getElementById('m_agua').innerText = dados.agua;
+                document.getElementById('m_tratamento').innerText = dados.tratamento_agua;
+                document.getElementById('m_esgoto').innerText = dados.esgoto;
+                document.getElementById('m_lixo').innerText = dados.lixo;
+                document.getElementById('m_animais').innerText = dados.animais;
+                
+                loading.classList.add('hidden');
+                conteudo.classList.remove('hidden');
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao carregar os dados detalhados da ficha.");
+                fecharModalFicha();
+            }
+        }
+
+        function fecharModalFicha() {
+            document.getElementById('modal_ficha').classList.add('hidden');
+        }
+
+        // Fecha o modal ao clicar fora da caixa branca
+        document.getElementById('modal_ficha').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalFicha();
+        });
+
+        // -----------------------------------------
+        // Autocomplete de Ruas (Busca Reversa)
+        // -----------------------------------------
+        const inputRua = document.getElementById('input_rua');
+        const listaRuas = document.getElementById('lista_ruas');
+        let debounceTimeoutRua = null;
+
+        if (inputRua) {
+            inputRua.addEventListener('input', function() {
+                const termo = this.value.trim();
+                clearTimeout(debounceTimeoutRua);
+
+                if (termo.length < 3) {
+                    listaRuas.classList.add('hidden');
+                    listaRuas.innerHTML = '';
+                    return;
+                }
+
+                debounceTimeoutRua = setTimeout(async () => {
+                    try {
+                        const resposta = await fetch(`/auditoria/api/busca-logradouro?q=${encodeURIComponent(termo)}`);
+                        const ruas = await resposta.json();
+                        
+                        listaRuas.innerHTML = '';
+                        if (ruas.length > 0) {
+                            ruas.forEach(rua => {
+                                const li = document.createElement('li');
+                                li.className = 'p-3 hover:bg-blue-50 cursor-pointer text-sm font-medium text-slate-700 transition-colors';
+                                li.innerText = rua;
+                                li.onclick = () => {
+                                    inputRua.value = rua; 
+                                    listaRuas.classList.add('hidden'); 
+                                    document.getElementById('input_numero').focus(); 
+                                };
+                                listaRuas.appendChild(li);
+                            });
+                            listaRuas.classList.remove('hidden');
+                        } else {
+                            listaRuas.innerHTML = '<li class="p-3 text-xs text-slate-400 text-center">Nenhuma rua encontrada.</li>';
+                            listaRuas.classList.remove('hidden');
+                        }
+                    } catch (e) {
+                        console.error("Erro no autocomplete:", e);
+                    }
+                }, 400); 
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!inputRua.contains(e.target) && !listaRuas.contains(e.target)) {
+                    listaRuas.classList.add('hidden');
+                }
+            });
         }
     </script>
 </body>

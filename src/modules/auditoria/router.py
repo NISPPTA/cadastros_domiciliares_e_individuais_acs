@@ -209,3 +209,26 @@ async def api_agendamentos_cidadao(
         esus_session, id_ficha, limit, offset
     )
     return JSONResponse(content=dados)
+
+
+@router.get(
+    "/api/atendimentos/{id_atendimento}/detalhes", summary="API - Detalhes da Consulta"
+)
+async def api_detalhes_atendimento(id_atendimento: int, esus_session: DbSession = None):
+    dados = await service.buscar_detalhes_atendimento(esus_session, id_atendimento)
+    if not dados:
+        raise HTTPException(status_code=404, detail="Atendimento não localizado.")
+    return JSONResponse(content=dados)
+
+
+@router.get(
+    "/api/profissionais/{id_profissional}/producao",
+    summary="API - Auditoria de Produção Diária",
+)
+async def api_producao_profissional(
+    id_profissional: int, data: str = Query(...), esus_session: DbSession = None
+):
+    dados = await service.buscar_producao_profissional_dia(
+        esus_session, id_profissional, data
+    )
+    return JSONResponse(content=dados)

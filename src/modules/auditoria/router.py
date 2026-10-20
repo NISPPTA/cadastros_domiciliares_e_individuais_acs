@@ -107,6 +107,42 @@ async def buscar_agentes_dinamico(
     return JSONResponse(content=agentes)
 
 
+@router.get("/api/busca-endereco", summary="API - Busca Reversa Territorial")
+async def api_busca_endereco(
+    rua: str = Query(..., min_length=3),
+    numero: str | None = Query(None),
+    esus_session: DbSession = None,
+):
+    """Retorna o ACS responsável por um endereço específico."""
+    return await service.buscar_reversa_endereco(esus_session, rua, numero)
+
+
+@router.get("/api/busca-logradouro", summary="Autocomplete de Ruas")
+async def autocomplete_logradouro(
+    q: str = Query(..., min_length=3, description="Mínimo 3 letras da rua"),
+    esus_session: DbSession = None,
+):
+    """API para o autocomplete do campo de endereço na Busca Reversa."""
+    if len(q.strip()) < 3:
+        return JSONResponse(content=[])
+    ruas = await service.buscar_logradouros_autocomplete(esus_session, q.strip())
+    return JSONResponse(content=ruas)
+
+
+@router.get(
+    "/api/ficha-domiciliar/{id_ficha}",
+    summary="API - Detalhes do Prontuário Domiciliar",
+)
+async def api_ficha_domiciliar(id_ficha: int, esus_session: DbSession = None):
+    """Retorna os dados detalhados (saneamento, moradia, animais) de uma ficha domiciliar."""
+    ficha = await service.buscar_detalhes_ficha_domiciliar(esus_session, id_ficha)
+    if not ficha:
+        raise HTTPException(
+            status_code=404, detail="Ficha não encontrada no banco de dados."
+        )
+    return JSONResponse(content=ficha)
+
+
 # 2. Rota que renderiza a nova página de Inspeção Pericial
 @router.get("/inspecao/", summary="Página de Inspeção Pericial (Sindicância)")
 async def carregar_tela_inspecao(

@@ -182,3 +182,30 @@ async def carregar_tela_inspecao(
         "relatorio": relatorio,
     }
     return templates.TemplateResponse(request, "inspecao.html", context)
+
+
+@router.get("/informacoes/{id_ficha}", response_class=HTMLResponse)
+async def pagina_informacoes_cidadao(
+    request: Request, id_ficha: int, esus_session: DbSession = None
+):
+    """Renderiza em nova guia as Informações do Cidadão."""
+    dados = await service.buscar_informacoes_cidadao(esus_session, id_ficha)
+    if not dados:
+        raise HTTPException(status_code=404, detail="Ficha Individual não encontrada.")
+
+    context = {"request": request, "cidadao": dados}
+    return templates.TemplateResponse(request, "informacoes_cidadao.html", context)
+
+
+@router.get(
+    "/api/informacoes/{id_ficha}/agendamentos",
+    summary="API - Histórico de Atendimentos do Cidadão",
+)
+async def api_agendamentos_cidadao(
+    id_ficha: int, limit: int = 5, offset: int = 0, esus_session: DbSession = None
+):
+    """Retorna o histórico de atendimentos reais paginado de um munícipe."""
+    dados = await service.buscar_agendamentos_cidadao_paginado(
+        esus_session, id_ficha, limit, offset
+    )
+    return JSONResponse(content=dados)

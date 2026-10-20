@@ -84,6 +84,56 @@ class AuditoriaCadastralService:
         )
         return [{"id": r.id, "nome": r.nome, "cns": r.cns} for r in result.all()]
 
+    async def buscar_reversa_endereco(
+        self, esus_session: AsyncSession, logradouro: str, numero: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Busca qual ACS e Microárea são responsáveis por um determinado endereço."""
+
+        query_base = """
+            SELECT 
+                fd.co_seq_fat_cad_domiciliar AS id_ficha,
+                dp.co_seq_dim_profissional AS id_agente,
+                dp.no_profissional AS agente_responsavel,
+                dp.nu_cns AS cns_agente,
+                COALESCE(fd.nu_micro_area, 'Sem Microárea') AS microarea,
+                ccd.no_logradouro AS rua,
+                ccd.nu_domicilio AS numero,
+                ccd.no_bairro AS bairro,
+                TO_CHAR(ccd.dt_cad_domiciliar, 'DD/MM/YYYY') AS data_cadastro
+            FROM tb_cds_cad_domiciliar ccd
+            JOIN tb_fat_cad_domiciliar fd ON fd.nu_uuid_ficha = ccd.co_unico_ficha
+            JOIN tb_dim_profissional dp ON dp.co_seq_dim_profissional = fd.co_dim_profissional
+            WHERE ccd.no_logradouro ILIKE :rua
+        """
+        params = {"rua": f"%{logradouro}%"}
+
+        if numero and numero.strip():
+            query_base += " AND ccd.nu_domicilio = :numero"
+            params["numero"] = numero.strip()
+
+        query_base += " ORDER BY ccd.dt_cad_domiciliar DESC;"
+
+        result = await esus_session.execute(text(query_base), params)
+        return [dict(row._mapping) for row in result.all()]
+
+    async def buscar_logradouros_autocomplete(
+        self, esus_session: AsyncSession, termo: str, limit: int = 10
+    ) -> list[str]:
+        """Busca nomes de ruas (distinct) para o autocomplete da busca reversa."""
+        query = text("""
+            SELECT DISTINCT no_logradouro
+            FROM tb_cds_cad_domiciliar
+            WHERE no_logradouro ILIKE :termo
+              AND no_logradouro IS NOT NULL
+            ORDER BY no_logradouro ASC
+            LIMIT :limit;
+        """)
+        termo_param = f"%{termo.strip()}%"
+        result = await esus_session.execute(
+            query, {"termo": termo_param, "limit": limit}
+        )
+        return [row[0] for row in result.all()]
+
     async def auditar_acs(
         self, esus_session: AsyncSession, profissional_id: int
     ) -> RelatorioAuditoriaACS:
@@ -117,6 +167,42 @@ class AuditoriaCadastralService:
             dados_saude=saude_dict,
             pontos_atencao=pontos_atencao,
         )
+
+    async def buscar_detalhes_ficha_domiciliar(
+        self, esus_session: AsyncSession, id_ficha: int
+    ) -> dict[str, Any] | None:
+        """Busca os dados detalhados de saneamento e moradia de uma ficha domiciliar específica."""
+        query = text("""
+            SELECT 
+                fd.co_seq_fat_cad_domiciliar AS id_ficha,
+                COALESCE(ccd.no_logradouro, 'Não Informado') AS rua,
+                COALESCE(ccd.nu_domicilio, 'S/N') AS numero,
+                COALESCE(ccd.no_bairro, '-') AS bairro,
+                COALESCE(fd.nu_comodo, 0) AS qtd_comodos,
+                COALESCE(fd.qt_morador, 0) AS qtd_moradores,
+                
+                COALESCE(daa.ds_tipo_abastecimento_agua, 'Não Informado') AS agua,
+                COALESCE(dta.ds_tipo_tratamento_agua, 'Não Informado') AS tratamento_agua,
+                COALESCE(des.ds_tipo_escoamento_sanitario, 'Não Informado') AS esgoto,
+                COALESCE(ddl.ds_tipo_destino_lixo, 'Não Informado') AS lixo,
+                
+                CASE WHEN fd.st_animal_domiciliar = 1 
+                     THEN 'Sim (' || COALESCE(fd.qt_animal_domiciliar, 0) || ' animal/is)' 
+                     ELSE 'Não/Sem Animais' 
+                END AS animais,
+                
+                TO_CHAR(ccd.dt_cad_domiciliar, 'DD/MM/YYYY') AS data_cadastro
+            FROM tb_fat_cad_domiciliar fd
+            LEFT JOIN tb_cds_cad_domiciliar ccd ON ccd.co_unico_ficha = fd.nu_uuid_ficha
+            LEFT JOIN tb_dim_tipo_abastecimento_agua daa ON daa.co_seq_dim_tipo_abastec_agua = fd.co_dim_tipo_abastecimento_agua
+            LEFT JOIN tb_dim_tipo_destino_lixo ddl ON ddl.co_seq_dim_tipo_destino_lixo = fd.co_dim_tipo_destino_lixo
+            LEFT JOIN tb_dim_tipo_tratamento_agua dta ON dta.co_seq_dim_tipo_tratament_agua = fd.co_dim_tipo_tratamento_agua
+            LEFT JOIN tb_dim_tipo_escoamento_sanitar des ON des.co_seq_dim_tipo_escoamento_snt = fd.co_dim_tipo_escoamento_sanitar
+            WHERE fd.co_seq_fat_cad_domiciliar = :id_ficha;
+        """)
+        result = await esus_session.execute(query, {"id_ficha": id_ficha})
+        row = result.first()
+        return dict(row._mapping) if row else None
 
     # ==========================================
     # MÉTODOS DA BANCADA PERICIAL (TELAS DETALHADAS)

@@ -706,10 +706,24 @@ class AuditoriaCadastralService:
             SELECT 
                 TO_CHAR(fai.dt_inicial_atendimento, 'DD/MM/YYYY HH24:MI:SS') AS inicio,
                 TO_CHAR(fai.dt_final_atendimento, 'DD/MM/YYYY HH24:MI:SS') AS fim,
-                -- Correção do Erro 2: Convertendo o Decimal para Integer no banco
                 COALESCE(CAST(ROUND(EXTRACT(EPOCH FROM (fai.dt_final_atendimento - fai.dt_inicial_atendimento))/60) AS INTEGER), 0) AS duracao_minutos,
-                COALESCE(fai.ds_filtro_ciaps, 'Nenhum CIAP registrado') AS ciaps,
-                COALESCE(fai.ds_filtro_cids, 'Nenhum CID registrado') AS cids,
+                
+                -- Extração e formatação dinâmica de CIAPs com descrições oficiais
+                COALESCE((
+                    SELECT string_agg(dim_ciap.nu_ciap || ' - ' || dim_ciap.no_ciap, '|')
+                    FROM unnest(string_to_array(trim(fai.ds_filtro_ciaps, '|'), '|')) AS c(codigo)
+                    JOIN tb_dim_ciap dim_ciap ON dim_ciap.nu_ciap = c.codigo
+                    WHERE c.codigo <> ''
+                ), 'Nenhum CIAP registrado') AS ciaps,
+                
+                -- Extração e formatação dinâmica de CIDs com descrições oficiais
+                COALESCE((
+                    SELECT string_agg(dim_cid.nu_cid || ' - ' || dim_cid.no_cid, '|')
+                    FROM unnest(string_to_array(trim(fai.ds_filtro_cids, '|'), '|')) AS c(codigo)
+                    JOIN tb_dim_cid dim_cid ON dim_cid.nu_cid = c.codigo
+                    WHERE c.codigo <> ''
+                ), 'Nenhum CID registrado') AS cids,
+                
                 COALESCE(fai.ds_filtro_proced_avaliados, 'Nenhum') AS procedimentos,
                 CASE WHEN fai.st_ficou_em_observacao = 1 THEN 'Sim' ELSE 'Não' END AS observacao
             FROM tb_fat_atendimento_individual fai

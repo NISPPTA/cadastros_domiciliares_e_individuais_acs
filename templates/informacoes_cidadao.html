@@ -7,6 +7,12 @@
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-slate-100 text-slate-900 font-sans min-h-screen p-8">
+        <!-- ELEMENTO DE CONTEXTO (Isola o Jinja2 do JavaScript de forma segura) -->
+        <div id="app-context"
+             data-id-ficha="{{ cidadao.id_ficha }}"
+             data-nome-cidadao="{{ cidadao.nome }}"
+             class="hidden"
+             aria-hidden="true"></div>
         <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 relative">
             <!-- Cabeçalho -->
             <div class="bg-indigo-900 p-8 text-white relative">
@@ -14,46 +20,56 @@
                 <h1 class="text-xs uppercase tracking-widest text-indigo-300 font-bold mb-1">Cadastro Individual - e-SUS PEC</h1>
                 <h2 class="text-3xl font-black mb-2">{{ cidadao.nome }}</h2>
                 <div class="flex gap-6 mt-4 text-sm font-medium text-indigo-100">
-                    <p>
-                        📄 Documento: <span class="text-white font-mono">{{ cidadao.documento }}</span>
-                    </p>
-                    <p>
-                        🎂 Nascimento: <span class="text-white font-mono">{{ cidadao.nascimento }}</span>
-                    </p>
+                    <p>📄 Documento: <span class="text-white font-mono">{{ cidadao.documento }}</span></p>
+                    <p>🎂 Nascimento: <span class="text-white font-mono">{{ cidadao.nascimento }}</span></p>
                 </div>
             </div>
-            <!-- Menu de Abas -->
-            <div class="border-b border-slate-200 bg-slate-50 px-8 pt-4 flex gap-2">
+            <!-- Menu de Abas (Acessibilidade WCAG) -->
+            <div class="border-b border-slate-200 bg-slate-50 px-8 pt-4 flex gap-2"
+                 role="tablist">
                 <button onclick="mudarAbaInfo('aba_informacoes')"
                         id="btn_tab_informacoes"
+                        role="tab"
+                        aria-selected="true"
+                        aria-controls="aba_informacoes"
                         class="tab-info-btn py-3 px-5 font-bold text-sm bg-white border-t border-l border-r border-slate-200 text-blue-600 rounded-t-lg -mb-px focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Informações
                 </button>
                 <button onclick="mudarAbaInfo('aba_prontuario')"
                         id="btn_tab_prontuario"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="aba_prontuario"
                         class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Prontuário Familiar
                 </button>
                 <button onclick="mudarAbaInfo('aba_unificacoes')"
                         id="btn_tab_unificacoes"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="aba_unificacoes"
                         class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Unificações
                 </button>
                 <button onclick="mudarAbaInfo('aba_agendamentos')"
                         id="btn_tab_agendamentos"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="aba_agendamentos"
                         class="tab-info-btn py-3 px-5 font-semibold text-sm border-t border-l border-r border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Agendamentos
                 </button>
             </div>
             <!-- ABA 1: INFORMAÇÕES -->
-            <div id="aba_informacoes" class="tab-info-content block p-8">
+            <div id="aba_informacoes"
+                 role="tabpanel"
+                 aria-labelledby="btn_tab_informacoes"
+                 class="tab-info-content block p-8">
                 <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-indigo-100 pb-2">👥 Contexto Familiar e Social</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
                         <p class="text-xs text-slate-500 uppercase font-semibold">Responsável Familiar?</p>
-                        <p class="text-lg font-bold {% if cidadao.responsavel_familiar == 'Sim' %}text-indigo-600{% else %}text-slate-700{% endif %}">
-                            {{ cidadao.responsavel_familiar }}
-                        </p>
+                        <p class="text-lg font-bold {% if cidadao.responsavel_familiar == 'Sim' %}text-indigo-600{% else %}text-slate-700{% endif %}">{{ cidadao.responsavel_familiar }}</p>
                     </div>
                     <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
                         <p class="text-xs text-slate-500 uppercase font-semibold">Parentesco</p>
@@ -61,24 +77,12 @@
                     </div>
                     <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
                         <p class="text-xs text-slate-500 uppercase font-semibold">Bolsa Família?</p>
-                        <p class="text-lg font-bold {% if cidadao.recebe_bolsa_familia == 'Sim' %}text-emerald-600{% else %}text-slate-700{% endif %}">
-                            {{ cidadao.recebe_bolsa_familia }}
-                        </p>
+                        <p class="text-lg font-bold {% if cidadao.recebe_bolsa_familia == 'Sim' %}text-emerald-600{% else %}text-slate-700{% endif %}">{{ cidadao.recebe_bolsa_familia }}</p>
                     </div>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-rose-100 pb-2">
-                    ❤️ Condições de Saúde e Doenças Crônicas
-                </h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-rose-100 pb-2">❤️ Condições de Saúde e Doenças Crônicas</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    {% set condicoes = [
-                        ('Hipertensão', cidadao.hipertenso),
-                        ('Diabetes', cidadao.diabetico),
-                        ('Doença Cardíaca', cidadao.doenca_cardiaca),
-                        ('Teve Infarto', cidadao.teve_infarto),
-                        ('Teve AVC', cidadao.teve_avc),
-                        ('Doença Respiratória', cidadao.doenca_respiratoria),
-                        ('Câncer', cidadao.tem_cancer)
-                    ] %}
+                    {% set condicoes = [('Hipertensão', cidadao.hipertenso), ('Diabetes', cidadao.diabetico), ('Doença Cardíaca', cidadao.doenca_cardiaca), ('Teve Infarto', cidadao.teve_infarto), ('Teve AVC', cidadao.teve_avc), ('Doença Respiratória', cidadao.doenca_respiratoria), ('Câncer', cidadao.tem_cancer)] %}
                     {% for nome, valor in condicoes %}
                         <div class="p-3 rounded-lg border {% if valor == 'Sim' %}bg-rose-50 border-rose-200{% else %}bg-slate-50 border-slate-100{% endif %}">
                             <p class="text-xs text-slate-500 uppercase font-semibold">{{ nome }}</p>
@@ -88,12 +92,7 @@
                 </div>
                 <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-amber-100 pb-2">⚠️ Hábitos e Condições Especiais</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {% set habitos = [
-                        ('Fumante', cidadao.fumante),
-                        ('Uso de Álcool', cidadao.usa_alcool),
-                        ('Gestante', cidadao.gestante),
-                        ('Morador de Rua', cidadao.morador_rua)
-                    ] %}
+                    {% set habitos = [('Fumante', cidadao.fumante), ('Uso de Álcool', cidadao.usa_alcool), ('Gestante', cidadao.gestante), ('Morador de Rua', cidadao.morador_rua)] %}
                     {% for nome, valor in habitos %}
                         <div class="p-3 rounded-lg border {% if valor == 'Sim' %}bg-amber-50 border-amber-200{% else %}bg-slate-50 border-slate-100{% endif %}">
                             <p class="text-xs text-slate-500 uppercase font-semibold">{{ nome }}</p>
@@ -103,59 +102,67 @@
                 </div>
             </div>
             <!-- ABA 2: PRONTUÁRIO FAMILIAR -->
-            <div id="aba_prontuario" class="tab-info-content hidden p-8">
+            <div id="aba_prontuario"
+                 role="tabpanel"
+                 aria-labelledby="btn_tab_prontuario"
+                 class="tab-info-content hidden p-8">
                 <div class="text-center py-10">
-                    <span class="text-4xl">🏠</span>
+                    <span class="text-4xl" aria-hidden="true">🏠</span>
                     <h3 class="text-lg font-bold text-slate-800 mt-4">Condições de Moradia e Domicílio</h3>
                     <p class="text-slate-500 text-sm mt-2">Dados estruturais vinculados ao cadastro do imóvel familiar.</p>
                 </div>
             </div>
             <!-- ABA 3: UNIFICAÇÕES -->
-            <div id="aba_unificacoes" class="tab-info-content hidden p-8">
+            <div id="aba_unificacoes"
+                 role="tabpanel"
+                 aria-labelledby="btn_tab_unificacoes"
+                 class="tab-info-content hidden p-8">
                 <div class="text-center py-10">
-                    <span class="text-4xl">🔗</span>
+                    <span class="text-4xl" aria-hidden="true">🔗</span>
                     <h3 class="text-lg font-bold text-slate-800 mt-4">Histórico de Mesclagem Cadastral</h3>
                     <p class="text-slate-500 text-sm mt-2">Registros de unificação automatizada de cadastros duplicados.</p>
                 </div>
             </div>
             <!-- ABA 4: AGENDAMENTOS -->
-            <div id="aba_agendamentos" class="tab-info-content hidden p-8">
-                <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-indigo-100 pb-2">
-                    📅 Histórico de Atendimentos Clínicos na UBS
-                </h3>
+            <div id="aba_agendamentos"
+                 role="tabpanel"
+                 aria-labelledby="btn_tab_agendamentos"
+                 class="tab-info-content hidden p-8">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 border-b-2 border-indigo-100 pb-2">📅 Histórico de Atendimentos Clínicos na UBS</h3>
                 <div class="overflow-hidden border border-slate-200 rounded-lg">
                     <table class="w-full text-left text-xs">
                         <thead class="bg-slate-100 uppercase text-slate-600 font-bold border-b border-slate-200">
                             <tr>
-                                <th class="p-3">Data do Atendimento</th>
-                                <th class="p-3">Profissional</th>
-                                <th class="p-3">Especialidade (CBO)</th>
-                                <th class="p-3 text-center">Pressão Medida</th>
-                                <th class="p-3 text-center">Peso (Kg)</th>
+                                <th scope="col" class="p-3">Data do Atendimento</th>
+                                <th scope="col" class="p-3">Profissional</th>
+                                <th scope="col" class="p-3">Especialidade (CBO)</th>
+                                <th scope="col" class="p-3 text-center">Pressão Medida</th>
+                                <th scope="col" class="p-3 text-center">Peso (Kg)</th>
                             </tr>
                         </thead>
                         <tbody id="agendamentos_tbody" class="divide-y divide-slate-100 bg-white">
                             <tr>
-                                <td colspan="5" class="p-6 text-center text-slate-400">Clique para carregar...</td>
+                                <td colspan="5"
+                                    class="p-6 text-center text-slate-400">Aguardando iteração do usuário...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="bg-slate-50 p-3 border border-t-0 border-slate-200 flex justify-between items-center text-xs rounded-b-lg">
-                    <span id="agendamentos_info" class="text-slate-500 font-medium">Aguardando...</span>
+                    <span id="agendamentos_info"
+                          class="text-slate-500 font-medium"
+                          aria-live="polite">Aguardando...</span>
                     <div class="flex gap-2">
                         <button type="button"
                                 id="btn_agend_prev"
                                 onclick="mudarPaginaAgendamentos(-1)"
-                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Anterior
-                        </button>
+                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled>Anterior</button>
                         <button type="button"
                                 id="btn_agend_next"
                                 onclick="mudarPaginaAgendamentos(1)"
-                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Próxima
-                        </button>
+                                class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled>Próxima</button>
                     </div>
                 </div>
             </div>
@@ -164,18 +171,20 @@
                 Bancada Pericial de Inspeção Cadastral e-SUS PEC
             </div>
         </div>
-        <!-- MODAIS DE AUDITORIA (Sobrepostos) -->
+        <!-- MODAIS -->
         <!-- MODAL 1: DETALHES DO ATENDIMENTO -->
         <div id="modal_atend"
              role="dialog"
              aria-modal="true"
-             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+             aria-labelledby="titulo_modal_atend"
+             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4 transition-opacity">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transform transition-all">
                 <div class="bg-indigo-900 p-4 flex justify-between items-center text-white">
-                    <h2 class="font-bold">Detalhes Clínicos do Atendimento</h2>
+                    <h2 id="titulo_modal_atend" class="font-bold">Detalhes Clínicos do Atendimento</h2>
                     <button type="button"
                             onclick="fecharModal('modal_atend')"
-                            class="text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-white rounded p-1">
+                            class="text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-white rounded p-1"
+                            aria-label="Fechar">
                         <svg xmlns="http://www.w3.org/2000/svg"
                              class="h-5 w-5"
                              fill="none"
@@ -185,22 +194,23 @@
                         </svg>
                     </button>
                 </div>
-                <div class="p-6 space-y-4 text-sm" id="conteudo_atend">
-                    <p class="text-center text-slate-500 animate-pulse">Carregando dados...</p>
-                </div>
+                <div class="p-6 space-y-4 text-sm" id="conteudo_atend" aria-live="polite"></div>
             </div>
         </div>
         <!-- MODAL 2: AGENDA DO PROFISSIONAL -->
         <div id="modal_agenda"
              role="dialog"
              aria-modal="true"
-             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+             aria-labelledby="titulo_modal_agenda"
+             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4 transition-opacity">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all">
                 <div class="bg-slate-800 p-4 flex justify-between items-center text-white">
-                    <h2 class="font-bold">Auditoria de Produção Diária (Volume e Consistência)</h2>
+                    <h2 id="titulo_modal_agenda"
+                        class="font-bold">Auditoria de Produção Diária (Volume e Consistência)</h2>
                     <button type="button"
                             onclick="fecharModal('modal_agenda')"
-                            class="text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-white rounded p-1">
+                            class="text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-white rounded p-1"
+                            aria-label="Fechar">
                         <svg xmlns="http://www.w3.org/2000/svg"
                              class="h-5 w-5"
                              fill="none"
@@ -214,7 +224,7 @@
                     <p class="text-xs text-slate-500 uppercase font-semibold">Profissional / Dia</p>
                     <p class="font-bold text-slate-800 text-lg" id="titulo_agenda">...</p>
                 </div>
-                <!-- CARDS DE RESUMO DA PRODUÇÃO (Iniciam ocultos) -->
+                <!-- CARDS DE RESUMO DA PRODUÇÃO -->
                 <div id="resumo_agenda_cards"
                      class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-white border-b border-slate-200 hidden">
                     <div class="bg-blue-50 border border-blue-100 p-3 rounded-lg shadow-sm">
@@ -240,9 +250,9 @@
                     <table class="w-full text-left text-xs">
                         <thead class="bg-slate-100 uppercase text-slate-600 font-bold sticky top-0 border-b border-slate-200 shadow-sm">
                             <tr>
-                                <th class="p-3 pl-4">Horário</th>
-                                <th class="p-3 text-center">Duração</th>
-                                <th class="p-3">Paciente Atendido</th>
+                                <th scope="col" class="p-3 pl-4">Horário</th>
+                                <th scope="col" class="p-3 text-center">Duração</th>
+                                <th scope="col" class="p-3">Paciente Atendido</th>
                             </tr>
                         </thead>
                         <tbody id="tbody_agenda" class="divide-y divide-slate-100">
@@ -252,15 +262,12 @@
             </div>
         </div>
         <script>
-        // ---------------------------------------------------------------------
-        // UTILITÁRIOS DOM SEGUROS (PREVENÇÃO DE XSS)
-        // ---------------------------------------------------------------------
-        function el(tag, className, textContent) {
-            const element = document.createElement(tag);
-            if (className) element.className = className;
-            if (textContent !== undefined && textContent !== null) element.textContent = String(textContent);
-            return element;
-        }
+        // =====================================================================
+        // CORE & UTILITÁRIOS (Prevenção Estrita de XSS e DOM Builders)
+        // =====================================================================
+        const appContext = document.getElementById('app-context');
+        const FICHA_ATUAL_ID = Number(appContext.dataset.idFicha || 0);
+        const NOME_CIDADAO_ATUAL = (appContext.dataset.nomeCidadao || "").trim().toUpperCase();
 
         function formatarTextoSeguro(valor, padrao = '-') {
             if (valor === null || valor === undefined) return padrao;
@@ -268,32 +275,50 @@
             return str.length > 0 ? str : padrao;
         }
 
-        // ---------------------------------------------------------------------
-        // GESTÃO DE ABAS
-        // ---------------------------------------------------------------------
+        /** Construtor seguro de nós DOM evitando innerHTML */
+        function el(tag, className = '', textContent = null, children = []) {
+            const element = document.createElement(tag);
+            if (className) element.className = className;
+            if (textContent !== null) element.textContent = formatarTextoSeguro(textContent);
+            children.forEach(child => {
+                if (child instanceof Node) element.appendChild(child);
+            });
+            return element;
+        }
+
+        function limparFilhos(elemento) {
+            while (elemento.firstChild) {
+                elemento.removeChild(elemento.firstChild);
+            }
+        }
+
+        // =====================================================================
+        // GESTÃO DE ABAS (Acessibilidade e Estado)
+        // =====================================================================
         function mudarAbaInfo(abaId) {
             document.querySelectorAll('.tab-info-content').forEach(el => {
-                el.classList.remove('block');
-                el.classList.add('hidden');
+                el.classList.replace('block', 'hidden');
             });
             document.querySelectorAll('.tab-info-btn').forEach(btn => {
+                btn.setAttribute('aria-selected', 'false');
                 btn.classList.remove('bg-white', 'border-slate-200', 'text-blue-600', '-mb-px');
                 btn.classList.add('border-transparent', 'text-slate-600', 'hover:bg-slate-100');
             });
-            document.getElementById(abaId).classList.remove('hidden');
-            document.getElementById(abaId).classList.add('block');
+            
+            const content = document.getElementById(abaId);
+            if (content) content.classList.replace('hidden', 'block');
             
             const btnAtivo = document.getElementById('btn_tab_' + abaId.replace('aba_', ''));
             if (btnAtivo) {
+                btnAtivo.setAttribute('aria-selected', 'true');
                 btnAtivo.classList.remove('border-transparent', 'text-slate-600', 'hover:bg-slate-100');
                 btnAtivo.classList.add('bg-white', 'border-slate-200', 'text-blue-600', '-mb-px');
             }
         }
 
-        // ---------------------------------------------------------------------
-        // PAGINAÇÃO E CARREGAMENTO DE AGENDAMENTOS
-        // ---------------------------------------------------------------------
-        const fichaAtualId = {{ cidadao.id_ficha }};
+        // =====================================================================
+        // TABELA DE AGENDAMENTOS (Paginação Server-Side Segura)
+        // =====================================================================
         let agendamentosPage = 0;
         const AGENDAMENTOS_LIMIT = 5;
         let agendamentosCarregados = false;
@@ -309,47 +334,41 @@
         };
 
         async function carregarAgendamentos() {
+            if (!FICHA_ATUAL_ID) return;
             const tbody = document.getElementById('agendamentos_tbody');
-            const offset = agendamentosPage * AGENDAMENTOS_LIMIT;
-            
-            tbody.innerHTML = '';
-            const trCarregando = el('tr');
-            const tdCarregando = el('td', 'p-6 text-center text-slate-400 font-medium animate-pulse', 'Buscando histórico na UBS...');
-            tdCarregando.colSpan = 5;
-            trCarregando.appendChild(tdCarregando);
-            tbody.appendChild(trCarregando);
+            limparFilhos(tbody);
+
+            const tdLoad = el('td', 'p-6 text-center text-slate-400 font-medium animate-pulse', 'Buscando histórico na UBS...');
+            tdLoad.colSpan = 5;
+            tbody.appendChild(el('tr', '', null, [tdLoad]));
 
             if (abortControllerAgendamentos) abortControllerAgendamentos.abort();
             abortControllerAgendamentos = new AbortController();
             
             try {
-                const response = await fetch(`/auditoria/api/informacoes/${fichaAtualId}/agendamentos?limit=${AGENDAMENTOS_LIMIT}&offset=${offset}`, {
+                const offset = agendamentosPage * AGENDAMENTOS_LIMIT;
+                const response = await fetch(`/auditoria/api/informacoes/${FICHA_ATUAL_ID}/agendamentos?limit=${AGENDAMENTOS_LIMIT}&offset=${offset}`, {
                     signal: abortControllerAgendamentos.signal,
                     headers: { 'Accept': 'application/json' }
                 });
                 
-                if (!response.ok) throw new Error('Falha na requisição');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 
-                tbody.innerHTML = '';
+                limparFilhos(tbody);
                 
-                if (data.total === 0) {
-                    const trAviso = el('tr');
-                    const tdAviso = el('td', 'p-6 text-center bg-rose-50 border-t border-rose-200');
+                if (!data.registros || data.total === 0) {
+                    const tdAviso = el('td', 'p-6 text-center bg-rose-50 border-t border-rose-200', null, [
+                        el('p', 'font-bold text-rose-700 text-sm flex items-center justify-center gap-2', '⚠️ Paciente nunca foi atendido na Unidade de Saúde!'),
+                        el('p', 'text-xs text-rose-600 mt-1', 'Nenhum registro de consulta ou procedimento localizado para este munícipe.')
+                    ]);
                     tdAviso.colSpan = 5;
-                    
-                    const pTitulo = el('p', 'font-bold text-rose-700 text-sm flex items-center justify-center gap-2', '⚠️ Paciente nunca foi atendido na Unidade de Saúde!');
-                    const pDesc = el('p', 'text-xs text-rose-600 mt-1', 'Nenhum registro de consulta ou procedimento localizado para este munícipe.');
-                    
-                    tdAviso.appendChild(pTitulo);
-                    tdAviso.appendChild(pDesc);
-                    trAviso.appendChild(tdAviso);
-                    tbody.appendChild(trAviso);
+                    tbody.appendChild(el('tr', '', null, [tdAviso]));
                 } else {
                     data.registros.forEach(r => {
                         const tr = el('tr', 'hover:bg-slate-50 border-b border-slate-100 transition-colors');
                         
-                        // 1. Coluna Data (Abre Modal do Atendimento)
+                        // Data Clicável
                         const tdData = el('td', 'p-3 font-mono font-bold');
                         if (r.id_atendimento) {
                             const btnData = el('button', 'text-indigo-700 hover:text-indigo-900 hover:underline focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1', formatarTextoSeguro(r.data_atendimento));
@@ -361,7 +380,7 @@
                         }
                         tr.appendChild(tdData);
 
-                        // 2. Coluna Profissional (Abre Modal da Agenda)
+                        // Profissional Clicável
                         const tdProf = el('td', 'p-3 font-medium');
                         if (r.id_profissional && r.data_iso) {
                             const btnProf = el('button', 'text-blue-700 hover:text-blue-900 hover:underline focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 text-left', formatarTextoSeguro(r.profissional));
@@ -373,7 +392,7 @@
                         }
                         tr.appendChild(tdProf);
 
-                        // Demais colunas
+                        // Demais infos
                         tr.appendChild(el('td', 'p-3 text-slate-600 text-[10px] uppercase truncate max-w-[150px]', formatarTextoSeguro(r.tipo_profissional)));
                         tr.appendChild(el('td', 'p-3 text-center font-mono text-slate-600', formatarTextoSeguro(r.pressao)));
                         tr.appendChild(el('td', 'p-3 text-center font-mono text-slate-600', formatarTextoSeguro(r.peso)));
@@ -382,8 +401,8 @@
                     });
                 }
 
-                const exibindoAte = Math.min((agendamentosPage + 1) * AGENDAMENTOS_LIMIT, data.total);
-                document.getElementById('agendamentos_info').innerText = data.total === 0 
+                const exibindoAte = Math.min((agendamentosPage + 1) * AGENDAMENTOS_LIMIT, data.total || 0);
+                document.getElementById('agendamentos_info').textContent = data.total === 0 
                     ? 'Nenhum registro encontrado' 
                     : `Mostrando ${offset + 1} a ${exibindoAte} de ${data.total} atendimentos`;
                 
@@ -392,92 +411,144 @@
 
             } catch (e) {
                 if (e.name === 'AbortError') return;
-                tbody.innerHTML = '';
-                const trErr = el('tr');
+                limparFilhos(tbody);
                 const tdErr = el('td', 'p-6 text-center text-rose-500 font-bold', 'Erro de conexão ao buscar histórico.');
                 tdErr.colSpan = 5;
-                trErr.appendChild(tdErr);
-                tbody.appendChild(trErr);
+                tbody.appendChild(el('tr', '', null, [tdErr]));
             }
         }
 
         function mudarPaginaAgendamentos(direcao) {
-            agendamentosPage += direcao;
+            agendamentosPage = Math.max(0, agendamentosPage + direcao);
             carregarAgendamentos();
         }
 
-        // ---------------------------------------------------------------------
-        // CONTROLE DOS MODAIS (DETALHES E AGENDA)
-        // ---------------------------------------------------------------------
+        // =====================================================================
+        // CONTROLES DE MODAL (UX e Eventos Acessíveis)
+        // =====================================================================
         let abortControllerModalAtend = null;
         let abortControllerModalAgenda = null;
 
         function fecharModal(id) { 
-            document.getElementById(id).classList.add('hidden'); 
+            const modal = document.getElementById(id);
+            if(modal) modal.classList.add('hidden'); 
         }
 
-        // Fecha ao clicar fora ou apertar ESC
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', e => {
             if (e.target.id === 'modal_atend') fecharModal('modal_atend');
             if (e.target.id === 'modal_agenda') fecharModal('modal_agenda');
         });
-        document.addEventListener('keydown', function(e) {
+
+        document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {
                 fecharModal('modal_atend');
                 fecharModal('modal_agenda');
             }
         });
 
+        // =====================================================================
+        // MODAL 1: DETALHES CLÍNICOS DO ATENDIMENTO (XSS Safe)
+        // =====================================================================
+        
+        // Criador de badges visuais para diagnósticos
+        function criarBadgesDiagnostico(str, fallbackText) {
+            const container = el('div', 'flex flex-wrap gap-2 mt-1');
+            if (!str || str === '||' || str.includes('Nenhum')) {
+                container.appendChild(el('div', 'text-slate-500 italic text-xs bg-slate-50 p-2 rounded border border-slate-100 w-full', fallbackText));
+                return container;
+            }
+            
+            const codigos = str.split('|').filter(c => c.trim().length > 0);
+            if (codigos.length === 0) {
+                container.appendChild(el('div', 'text-slate-500 italic text-xs bg-slate-50 p-2 rounded border border-slate-100 w-full', fallbackText));
+                return container;
+            }
+            
+            const paletas = [
+                'bg-indigo-50 text-indigo-700 border-indigo-200',
+                'bg-emerald-50 text-emerald-700 border-emerald-200',
+                'bg-amber-50 text-amber-700 border-amber-200',
+                'bg-rose-50 text-rose-700 border-rose-200',
+                'bg-purple-50 text-purple-700 border-purple-200',
+                'bg-sky-50 text-sky-700 border-sky-200'
+            ];
+
+            codigos.forEach((c, index) => {
+                const cor = paletas[index % paletas.length];
+                container.appendChild(el('span', `inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-bold border shadow-sm ${cor} max-w-full truncate whitespace-normal leading-tight`, c.trim()));
+            });
+            return container;
+        }
+
         async function abrirModalAtendimento(idAtend) {
             const modal = document.getElementById('modal_atend');
             const conteudo = document.getElementById('conteudo_atend');
             modal.classList.remove('hidden');
             
-            conteudo.innerHTML = '';
+            limparFilhos(conteudo);
             conteudo.appendChild(el('p', 'text-center text-slate-500 font-medium animate-pulse', 'Carregando dados da consulta...'));
             
             if (abortControllerModalAtend) abortControllerModalAtend.abort();
             abortControllerModalAtend = new AbortController();
             
             try {
-                const resp = await fetch(`/auditoria/api/atendimentos/${idAtend}/detalhes`, {
-                    signal: abortControllerModalAtend.signal
-                });
+                const resp = await fetch(`/auditoria/api/atendimentos/${idAtend}/detalhes`, { signal: abortControllerModalAtend.signal });
                 if (!resp.ok) throw new Error();
                 const d = await resp.json();
                 
-                conteudo.innerHTML = `
-                    <div class="flex justify-between border-b border-slate-100 pb-2"><span class="font-semibold text-slate-600">Início:</span> <span class="font-mono text-slate-800">${formatarTextoSeguro(d.inicio)}</span></div>
-                    <div class="flex justify-between border-b border-slate-100 pb-2"><span class="font-semibold text-slate-600">Fim:</span> <span class="font-mono text-slate-800">${formatarTextoSeguro(d.fim)}</span></div>
-                    <div class="flex justify-between border-b border-slate-100 pb-2"><span class="font-semibold text-slate-600">Duração:</span> <span class="font-bold ${d.duracao_minutos < 2 ? 'text-rose-600' : 'text-emerald-600'}">${formatarTextoSeguro(d.duracao_minutos, '0')} min</span></div>
-                    <div class="flex flex-col border-b border-slate-100 pb-2 mt-2"><span class="font-semibold text-slate-600 mb-1">Motivo (CIAP2):</span> <span class="text-slate-800 text-xs bg-slate-50 border border-slate-100 p-2 rounded">${formatarTextoSeguro(d.ciaps)}</span></div>
-                    <div class="flex flex-col border-b border-slate-100 pb-2 mt-2"><span class="font-semibold text-slate-600 mb-1">Diagnóstico (CID10):</span> <span class="text-slate-800 text-xs bg-slate-50 border border-slate-100 p-2 rounded">${formatarTextoSeguro(d.cids)}</span></div>
-                    <div class="flex justify-between pt-2"><span class="font-semibold text-slate-600">Ficou em Observação?</span> <span class="font-bold text-slate-800">${formatarTextoSeguro(d.observacao)}</span></div>
-                `;
+                limparFilhos(conteudo);
+
+                // Constrói as linhas de informação seguras via DOM Element
+                const criarLinhaInfo = (label, valor, classesValor = 'font-mono text-slate-800') => {
+                    const row = el('div', 'flex justify-between border-b border-slate-100 pb-2 mt-2');
+                    row.appendChild(el('span', 'font-semibold text-slate-600', label));
+                    row.appendChild(el('span', classesValor, valor));
+                    return row;
+                };
+
+                const corDuracao = (d.duracao_minutos < 2) ? 'font-bold text-rose-600' : 'font-bold text-emerald-600';
+
+                conteudo.appendChild(criarLinhaInfo('Início:', formatarTextoSeguro(d.inicio)));
+                conteudo.appendChild(criarLinhaInfo('Fim:', formatarTextoSeguro(d.fim)));
+                conteudo.appendChild(criarLinhaInfo('Duração:', `${formatarTextoSeguro(d.duracao_minutos, '0')} min`, corDuracao));
+                
+                const boxCiap = el('div', 'flex flex-col border-b border-slate-100 pb-3 mt-3');
+                boxCiap.appendChild(el('span', 'font-semibold text-slate-600 mb-1', 'Motivo (CIAP2):'));
+                boxCiap.appendChild(criarBadgesDiagnostico(d.ciaps, 'Nenhum CIAP registrado'));
+                conteudo.appendChild(boxCiap);
+
+                const boxCid = el('div', 'flex flex-col border-b border-slate-100 pb-3 mt-3');
+                boxCid.appendChild(el('span', 'font-semibold text-slate-600 mb-1', 'Diagnóstico (CID10):'));
+                boxCid.appendChild(criarBadgesDiagnostico(d.cids, 'Nenhum CID registrado'));
+                conteudo.appendChild(boxCid);
+
+                conteudo.appendChild(criarLinhaInfo('Ficou em Observação?', formatarTextoSeguro(d.observacao), 'font-bold text-slate-800'));
+
             } catch (e) {
                 if (e.name === 'AbortError') return;
-                conteudo.innerHTML = '';
+                limparFilhos(conteudo);
                 conteudo.appendChild(el('p', 'text-center text-rose-600 font-semibold', 'Falha ao buscar dados do atendimento.'));
             }
         }
 
+        // =====================================================================
+        // MODAL 2: AGENDA (Análise de Produção Massiva)
+        // =====================================================================
         async function abrirModalAgenda(idProf, dataIso, nomeProf) {
             const modal = document.getElementById('modal_agenda');
             const tbody = document.getElementById('tbody_agenda');
             const cardsContainer = document.getElementById('resumo_agenda_cards');
             
             modal.classList.remove('hidden');
-            cardsContainer.classList.add('hidden'); // Oculta até carregar
+            cardsContainer.classList.add('hidden');
             
             const dataFormatada = dataIso ? dataIso.split('-').reverse().join('/') : '-';
             document.getElementById('titulo_agenda').textContent = `${formatarTextoSeguro(nomeProf)} - ${dataFormatada}`;
             
-            tbody.innerHTML = '';
-            const trLoad = el('tr');
+            limparFilhos(tbody);
             const tdLoad = el('td', 'p-6 text-center text-slate-500 font-medium animate-pulse', 'Auditando agenda do dia...');
             tdLoad.colSpan = 3;
-            trLoad.appendChild(tdLoad);
-            tbody.appendChild(trLoad);
+            tbody.appendChild(el('tr', '', null, [tdLoad]));
             
             if (abortControllerModalAgenda) abortControllerModalAgenda.abort();
             abortControllerModalAgenda = new AbortController();
@@ -486,28 +557,23 @@
                 const url = new URL(`/auditoria/api/profissionais/${idProf}/producao`, window.location.origin);
                 url.searchParams.set('data', dataIso);
 
-                const resp = await fetch(url.toString(), {
-                    signal: abortControllerModalAgenda.signal
-                });
+                const resp = await fetch(url.toString(), { signal: abortControllerModalAgenda.signal });
                 if (!resp.ok) throw new Error();
                 const dados = await resp.json();
                 
-                tbody.innerHTML = '';
+                limparFilhos(tbody);
                 
-                if (dados.length === 0) {
-                    const tr = el('tr');
-                    const td = el('td', 'p-6 text-center text-slate-500', 'Nenhum atendimento retornado para este dia.');
-                    td.colSpan = 3;
-                    tr.appendChild(td);
-                    tbody.appendChild(tr);
+                if (!dados || dados.length === 0) {
+                    const tdEmpty = el('td', 'p-6 text-center text-slate-500', 'Nenhum atendimento retornado para este dia.');
+                    tdEmpty.colSpan = 3;
+                    tbody.appendChild(el('tr', '', null, [tdEmpty]));
                     return;
                 }
 
-                // --- CÁLCULO DOS CARDS DE RESUMO ---
+                // Cálculo Analítico dos Cards
                 const totalPacientes = dados.length;
                 const tempoTotalMinutos = dados.reduce((acc, curr) => acc + (parseInt(curr.duracao_minutos, 10) || 0), 0);
                 
-                // Conversão inteligente de minutos para horas
                 let tempoFormatado = `${tempoTotalMinutos} min`;
                 if (tempoTotalMinutos >= 60) {
                     const horas = Math.floor(tempoTotalMinutos / 60);
@@ -515,40 +581,50 @@
                     tempoFormatado = minutos > 0 ? `${horas}h ${minutos}m` : `${horas}h`;
                 }
 
-                const primeiroAtend = formatarTextoSeguro(dados[0].hora_inicio, '--:--');
-                const ultimoAtend = formatarTextoSeguro(dados[dados.length - 1].hora_fim, '--:--');
-
-                document.getElementById('card_ag_total_pacientes').textContent = totalPacientes;
+                document.getElementById('card_ag_total_pacientes').textContent = String(totalPacientes);
                 document.getElementById('card_ag_tempo_total').textContent = tempoFormatado;
-                document.getElementById('card_ag_inicio').textContent = primeiroAtend;
-                document.getElementById('card_ag_fim').textContent = ultimoAtend;
-                
-                cardsContainer.classList.remove('hidden'); // Exibe os cards preenchidos
-                // -----------------------------------
+                document.getElementById('card_ag_inicio').textContent = formatarTextoSeguro(dados[0].hora_inicio, '--:--');
+                document.getElementById('card_ag_fim').textContent = formatarTextoSeguro(dados[dados.length - 1].hora_fim, '--:--');
+                cardsContainer.classList.remove('hidden');
 
+                // Preenchimento de Tabela com Destaque do Alvo Auditado
                 dados.forEach(a => {
-                    const tr = el('tr', 'hover:bg-slate-50 border-b border-slate-100 transition-colors');
+                    const pacienteLinha = formatarTextoSeguro(a.paciente);
+                    const isPacienteAtual = (pacienteLinha.toUpperCase() === NOME_CIDADAO_ATUAL && NOME_CIDADAO_ATUAL !== "");
+                    
+                    const bgClass = isPacienteAtual 
+                        ? 'bg-emerald-50 hover:bg-emerald-100 border-b border-emerald-200' 
+                        : 'hover:bg-slate-50 border-b border-slate-100';
+
+                    const tr = el('tr', `${bgClass} transition-colors`);
+                    
                     tr.appendChild(el('td', 'p-3 pl-4 font-mono font-bold text-slate-700', `${formatarTextoSeguro(a.hora_inicio)} - ${formatarTextoSeguro(a.hora_fim)}`));
                     
+                    // Avaliação de Duração Crítica
+                    const duracaoNum = parseInt(a.duracao_minutos, 10);
+                    const badgeClass = (duracaoNum < 3) 
+                        ? 'bg-rose-100 text-rose-800 font-bold' 
+                        : (isPacienteAtual ? 'bg-emerald-200 text-emerald-900 font-bold' : 'bg-slate-100 text-slate-700 font-medium');
+                    
                     const tdDuracao = el('td', 'p-3 text-center');
-                    const alertaDuracao = a.duracao_minutos < 3 ? 'bg-rose-100 text-rose-800 font-bold' : 'bg-slate-100 text-slate-700 font-medium';
-                    tdDuracao.appendChild(el('span', `px-2 py-0.5 rounded text-[11px] ${alertaDuracao}`, `${formatarTextoSeguro(a.duracao_minutos, '0')}m`));
+                    tdDuracao.appendChild(el('span', `px-2 py-0.5 rounded text-[11px] ${badgeClass}`, `${duracaoNum}m`));
                     tr.appendChild(tdDuracao);
                     
-                    const tdPac = el('td', 'p-3 text-slate-800 font-medium truncate max-w-[250px]', formatarTextoSeguro(a.paciente));
-                    tdPac.title = formatarTextoSeguro(a.paciente);
+                    // Paciente com formatação de destaque
+                    const txtClass = isPacienteAtual ? 'text-emerald-900 font-bold' : 'text-slate-800';
+                    const tdPac = el('td', `p-3 font-medium truncate max-w-[250px] ${txtClass}`, pacienteLinha);
+                    tdPac.title = pacienteLinha;
                     tr.appendChild(tdPac);
                     
                     tbody.appendChild(tr);
                 });
+
             } catch (e) {
                 if (e.name === 'AbortError') return;
-                tbody.innerHTML = '';
-                const tr = el('tr');
-                const td = el('td', 'p-6 text-center text-rose-600 font-semibold', 'Erro ao carregar a agenda.');
-                td.colSpan = 3;
-                tr.appendChild(td);
-                tbody.appendChild(tr);
+                limparFilhos(tbody);
+                const tdErr = el('td', 'p-6 text-center text-rose-600 font-semibold', 'Erro ao carregar a agenda diária.');
+                tdErr.colSpan = 3;
+                tbody.appendChild(el('tr', '', null, [tdErr]));
             }
         }
         </script>
